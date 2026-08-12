@@ -5,7 +5,8 @@ C++17 firmware for the **LilyGO T5-4.7" E-Paper S3** (ESP32-S3, 960×540 graysca
 ## Project layout
 
 ```
-include/          C++ headers (app, store, scheduler, display)
+include/          C++ headers (app, store, scheduler, display, lora.h)
+assets/fonts/     Lora-Regular.ttf (SIL Open Font License)
 src/              C++ implementation + main.cpp entry point
 tools/            Host C++ utility (pack_quotes.cpp)
 data/quotes.json  Human-editable quote source

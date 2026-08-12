@@ -5,19 +5,23 @@
 #include <cstring>
 
 #include "epd_driver.h"
-#include "firasans.h"
+#include "fonts.hpp"
 #include "utilities.h"
 
 namespace {
 
 constexpr std::int32_t kMarginX = 48;
 constexpr std::int32_t kContentWidth = EPD_WIDTH - (kMarginX * 2);
-constexpr std::int32_t kBodyLineHeight = 52;
+constexpr std::int32_t kBodyLineHeight = 46;
+
+void drawText(const char *text, std::int32_t x, std::int32_t y, std::uint8_t *framebuffer) {
+    std::int32_t cursor_x = x;
+    std::int32_t cursor_y = y;
+    write_string(kDisplayFont, const_cast<char *>(text), &cursor_x, &cursor_y, framebuffer);
+}
 
 void drawCentered(const char *text, std::int32_t y, std::uint8_t *framebuffer) {
-    std::int32_t cursor_x = kMarginX;
-    std::int32_t cursor_y = y;
-    write_string((GFXfont *)&FiraSans, const_cast<char *>(text), &cursor_x, &cursor_y, framebuffer);
+    drawText(text, kMarginX, y, framebuffer);
 }
 
 }  // namespace
@@ -47,7 +51,7 @@ std::int32_t QuoteDisplay::measureLineWidth(const char *start, const char *end) 
 
     std::int32_t cursor_x = 0;
     std::int32_t cursor_y = 0;
-    write_string((GFXfont *)&FiraSans, buffer, &cursor_x, &cursor_y, nullptr);
+    write_string(kDisplayFont, buffer, &cursor_x, &cursor_y, nullptr);
     return cursor_x;
 }
 
@@ -77,9 +81,7 @@ void QuoteDisplay::drawWrappedText(const char *text, std::int32_t x, std::int32_
             std::memcpy(line, text, line_len);
             line[line_len] = '\0';
 
-            std::int32_t cursor_x = x;
-            std::int32_t cursor_y = line_y;
-            write_string((GFXfont *)&FiraSans, line, &cursor_x, &cursor_y, framebuffer);
+            drawText(line, x, line_y, framebuffer);
             line_y += line_height;
 
             while (*word == ' ') {
@@ -99,9 +101,7 @@ void QuoteDisplay::drawWrappedText(const char *text, std::int32_t x, std::int32_
             std::memcpy(line, text, line_len);
             line[line_len] = '\0';
 
-            std::int32_t cursor_x = x;
-            std::int32_t cursor_y = line_y;
-            write_string((GFXfont *)&FiraSans, line, &cursor_x, &cursor_y, framebuffer);
+            drawText(line, x, line_y, framebuffer);
             line_y += line_height;
 
             text = cursor + 1;
@@ -123,9 +123,7 @@ void QuoteDisplay::drawWrappedText(const char *text, std::int32_t x, std::int32_
     }
 
     if (text < cursor || *text) {
-        std::int32_t cursor_x = x;
-        std::int32_t cursor_y = line_y;
-        write_string((GFXfont *)&FiraSans, const_cast<char *>(text), &cursor_x, &cursor_y, framebuffer);
+        drawText(text, x, line_y, framebuffer);
     }
 }
 
@@ -133,7 +131,7 @@ void QuoteDisplay::show(const QuoteRecord &quote, std::size_t index, std::size_t
                         std::uint32_t seconds_until_next) {
     std::memset(framebuffer_, 0xFF, EPD_WIDTH * EPD_HEIGHT / 2);
 
-    epd_fill_rect(kMarginX, 36, 220, 52, 0x0000, framebuffer_);
+    epd_fill_rect(kMarginX, 36, 240, 52, 0x0000, framebuffer_);
     FontProperties inverted = {
         .fg_color = 15,
         .bg_color = 0,
@@ -142,20 +140,20 @@ void QuoteDisplay::show(const QuoteRecord &quote, std::size_t index, std::size_t
     };
     std::int32_t topic_x = kMarginX + 16;
     std::int32_t topic_y = 72;
-    write_mode((GFXfont *)&FiraSans, const_cast<char *>(quote.topic.c_str()), &topic_x,
-               &topic_y, framebuffer_, WHITE_ON_BLACK, &inverted);
+    write_mode(kDisplayFont, const_cast<char *>(quote.topic.c_str()), &topic_x, &topic_y, framebuffer_,
+               WHITE_ON_BLACK, &inverted);
 
     std::int32_t mark_x = kMarginX;
-    std::int32_t mark_y = 150;
-    write_string((GFXfont *)&FiraSans, const_cast<char *>("\xE2\x80\x9C"), &mark_x, &mark_y, framebuffer_);
+    std::int32_t mark_y = 148;
+    drawText("\xE2\x80\x9C", mark_x, mark_y, framebuffer_);
 
-    drawWrappedText(quote.quote.c_str(), kMarginX, 210, kContentWidth, kBodyLineHeight, framebuffer_);
+    drawWrappedText(quote.quote.c_str(), kMarginX, 205, kContentWidth, kBodyLineHeight, framebuffer_);
 
     char attribution[160];
     std::snprintf(attribution, sizeof(attribution), "\xE2\x80\x94 %s", quote.source.c_str());
     std::int32_t attr_x = kMarginX;
     std::int32_t attr_y = EPD_HEIGHT - 150;
-    write_string((GFXfont *)&FiraSans, attribution, &attr_x, &attr_y, framebuffer_);
+    drawText(attribution, attr_x, attr_y, framebuffer_);
 
     char footer[80];
     if (seconds_until_next > 0) {

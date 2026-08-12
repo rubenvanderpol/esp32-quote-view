@@ -23,3 +23,5 @@ subprocess.check_call(
 )
 
 subprocess.check_call([str(tool_bin)], cwd=str(project_dir))
+
+subprocess.check_call([sys.executable, str(project_dir / "scripts" / "fontconvert_lora.py")])
