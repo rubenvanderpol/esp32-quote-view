@@ -68,6 +68,19 @@ String pool:      [topic_id:u8][quote_len:u16][source_len:u8][quote][source] ...
 
 Press the side button to skip ahead. Otherwise the display advances to the **next quote in `quotes.json` order** every 6 hours (change `QUOTE_INTERVAL_HOURS` in `include/config.hpp`).
 
+## Deep sleep (battery)
+
+By default the firmware uses **deep sleep** between updates (`ENABLE_DEEP_SLEEP` in `include/config.hpp`). After drawing a quote it powers off the e-paper panel and sleeps until:
+
+- the next scheduled quote change (RTC timer wake), or
+- you press the side button (GPIO 21 wake).
+
+On wake the ESP32 reboots, reloads the quote index from NVS flash, handles the wake reason, redraws, and sleeps again. LilyGO reports roughly **~388 µA** with timer + GPIO wake on this board.
+
+Set `ENABLE_DEEP_SLEEP` to `0` while debugging over USB if you want continuous serial output and polled button handling instead of wake-on-press.
+
+All text is rendered in **Lora** (28 px serif). To regenerate `include/lora.h` after changing the font or size, run `python3 scripts/fontconvert_lora.py` (requires `freetype-py`).
+
 If the board was powered off, it catches up on boot (e.g. 18 hours off → skips ahead 3 quotes).
 
 ## Editing quotes

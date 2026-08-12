@@ -1,7 +1,8 @@
 #include "app.hpp"
 
 #include <Arduino.h>
-#include <Button2.h>
+#include <Wire.h>
+#include <esp_sleep.h>
 
 #include <cstdio>
 
@@ -11,11 +12,17 @@
 #include "quote_store.hpp"
 #include "utilities.h"
 
+#if !ENABLE_DEEP_SLEEP
+#include <Button2.h>
+#endif
+
 namespace {
 
 QuoteStore g_store;
 QuoteDisplay g_display;
 QuoteScheduler g_scheduler;
+
+#if !ENABLE_DEEP_SLEEP
 Button2 g_button(BUTTON_1);
 QuoteApp *g_app = nullptr;
 
@@ -25,6 +32,7 @@ void handleButtonPressed(Button2 &btn) {
         g_app->onButtonPressed();
     }
 }
+#endif
 
 }  // namespace
 
@@ -69,6 +77,47 @@ void QuoteApp::checkSchedule() {
     }
 }
 
+void QuoteApp::handleWakeCause() {
+    if (g_store.count() == 0) {
+        return;
+    }
+
+    const esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
+    switch (cause) {
+        case ESP_SLEEP_WAKEUP_EXT1:
+            Serial.println("Wake: button — skipping to next quote");
+            g_scheduler.skip(g_store.count());
+            break;
+        case ESP_SLEEP_WAKEUP_TIMER:
+            Serial.println("Wake: timer — checking schedule");
+            break;
+        default:
+            Serial.println("Wake: cold boot");
+            break;
+    }
+}
+
+void QuoteApp::enterDeepSleep() {
+    g_display.powerOff();
+
+    std::uint32_t sleep_seconds = g_scheduler.secondsUntilNext();
+    if (sleep_seconds == 0) {
+        sleep_seconds = g_scheduler.intervalSeconds();
+    }
+
+    const std::uint64_t sleep_us = static_cast<std::uint64_t>(sleep_seconds) * 1000000ULL;
+    esp_sleep_enable_timer_wakeup(sleep_us);
+    esp_sleep_enable_ext1_wakeup(_BV(GPIO_NUM_21), ESP_EXT1_WAKEUP_ANY_LOW);
+
+    Serial.printf("Deep sleep for %u s (index %u)\n", sleep_seconds,
+                  static_cast<unsigned>(g_scheduler.currentIndex()));
+    Serial.flush();
+    delay(100);
+
+    Wire.end();
+    esp_deep_sleep_start();
+}
+
 void QuoteApp::setup() {
     Serial.begin(115200);
     delay(500);
@@ -90,11 +139,19 @@ void QuoteApp::setup() {
         return;
     }
 
+#if !ENABLE_DEEP_SLEEP
     g_app = this;
     g_button.setPressedHandler(handleButtonPressed);
+#endif
+
+    handleWakeCause();
     g_scheduler.syncToClock(g_store.count());
     showCurrentQuote();
     initialized_ = true;
+
+#if ENABLE_DEEP_SLEEP
+    enterDeepSleep();
+#endif
 }
 
 void QuoteApp::loop() {
@@ -102,6 +159,7 @@ void QuoteApp::loop() {
         return;
     }
 
+#if !ENABLE_DEEP_SLEEP
     g_button.loop();
 
     if (millis() - last_check_ms_ >= 30000UL) {
@@ -110,4 +168,5 @@ void QuoteApp::loop() {
     }
 
     delay(2);
+#endif
 }
