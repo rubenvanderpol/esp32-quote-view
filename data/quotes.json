@@ -1,0 +1,35 @@
+{
+  "topics": [
+    "wisdom",
+    "courage",
+    "science",
+    "humor"
+  ],
+  "quotes": [
+    {
+      "quote": "The only true wisdom is in knowing you know nothing.",
+      "topic": "wisdom",
+      "source": "Socrates"
+    },
+    {
+      "quote": "It is during our darkest moments that we must focus to see the light.",
+      "topic": "courage",
+      "source": "Aristotle"
+    },
+    {
+      "quote": "Somewhere, something incredible is waiting to be known.",
+      "topic": "science",
+      "source": "Carl Sagan"
+    },
+    {
+      "quote": "I have not failed. I've just found 10,000 ways that won't work.",
+      "topic": "science",
+      "source": "Thomas Edison"
+    },
+    {
+      "quote": "A day without sunshine is like, you know, night.",
+      "topic": "humor",
+      "source": "Steve Martin"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "PIO Debug (T5-ePaper-S3)",
+      "type": "platformio-debug",
+      "request": "launch",
+      "projectEnvName": "T5-ePaper-S3"
+    }
+  ]
+}
