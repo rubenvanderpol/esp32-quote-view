@@ -6,7 +6,8 @@ A quote-of-the-day display for the **LilyGO T5-4.7" E-Paper S3** (ESP32-S3, 960�
 
 - [LilyGO T5-4.7-S3 E-Paper](https://github.com/Xinyuan-LilyGO/LilyGo-EPD47) (4.7" ED047TC1, JST-PH Li-Po)
 - USB-C cable for power, upload, serial monitor, and JTAG debug
-- Side button (GPIO 21) cycles to the next quote
+- Side button (GPIO 21) skips to the next quote immediately
+- On-board **PCF8563 RTC** drives automatic rotation every `QUOTE_INTERVAL_HOURS` (default 6 h)
 
 ## Storage design
 
@@ -55,7 +56,9 @@ String pool:      [topic_id:u8][quote_len:u16][source_len:u8][quote][source] ...
    pio device monitor -e T5-ePaper-S3
    ```
 
-Press the side button to advance to the next quote.
+Press the side button to skip ahead. Otherwise the display advances to the **next quote in `quotes.json` order** every 6 hours (change `QUOTE_INTERVAL_HOURS` in `src/config.h`).
+
+If the board was powered off, it catches up on boot (e.g. 18 hours off → skips ahead 3 quotes).
 
 ## Editing quotes
 
@@ -102,9 +105,11 @@ Yes — the ESP32-S3 on this board exposes **USB Serial/JTAG**, so you can debug
 ├── data/quotes.json           # Edit quotes here
 ├── scripts/pack_quotes.py     # JSON → binary packer
 ├── src/
-│   ├── main.cpp               # Button + app loop
+│   ├── main.cpp               # Schedule loop + button skip
+│   ├── quote_scheduler.cpp    # RTC-based interval rotation
 │   ├── quote_store.cpp        # LittleFS binary reader
 │   └── quote_display.cpp      # E-paper layout
+│   └── config.h               # QUOTE_INTERVAL_HOURS
 └── platformio.ini
 ```
 

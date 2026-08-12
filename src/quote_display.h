@@ -7,7 +7,8 @@
 class QuoteDisplay {
 public:
     bool begin();
-    void show(const QuoteRecord &quote, size_t index, size_t total);
+    void show(const QuoteRecord &quote, size_t index, size_t total,
+              uint32_t seconds_until_next = 0);
     void powerOff();
 
 private:

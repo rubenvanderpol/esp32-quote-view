@@ -129,7 +129,8 @@ void QuoteDisplay::drawWrappedText(const char *text, int32_t x, int32_t y,
     }
 }
 
-void QuoteDisplay::show(const QuoteRecord &quote, size_t index, size_t total) {
+void QuoteDisplay::show(const QuoteRecord &quote, size_t index, size_t total,
+                        uint32_t seconds_until_next) {
     memset(framebuffer_, 0xFF, EPD_WIDTH * EPD_HEIGHT / 2);
 
   // Topic badge
@@ -161,10 +162,22 @@ void QuoteDisplay::show(const QuoteRecord &quote, size_t index, size_t total) {
     int32_t attr_y = EPD_HEIGHT - 150;
     write_string((GFXfont *)&FiraSans, attribution, &attr_x, &attr_y, framebuffer_);
 
-  // Footer / navigation hint
-    char footer[64];
-    snprintf(footer, sizeof(footer), "%u / %u   Press button for next", static_cast<unsigned>(index + 1),
-             static_cast<unsigned>(total));
+  // Footer
+    char footer[80];
+    if (seconds_until_next > 0) {
+        const uint32_t hours = seconds_until_next / 3600U;
+        const uint32_t minutes = (seconds_until_next % 3600U) / 60U;
+        if (hours > 0) {
+            snprintf(footer, sizeof(footer), "%u / %u   Next in %uh %um",
+                     static_cast<unsigned>(index + 1), static_cast<unsigned>(total), hours, minutes);
+        } else {
+            snprintf(footer, sizeof(footer), "%u / %u   Next in %um", static_cast<unsigned>(index + 1),
+                     static_cast<unsigned>(total), minutes);
+        }
+    } else {
+        snprintf(footer, sizeof(footer), "%u / %u", static_cast<unsigned>(index + 1),
+                 static_cast<unsigned>(total));
+    }
     drawCentered(footer, EPD_HEIGHT - 70, framebuffer_);
 
     epd_draw_hline(kMarginX, EPD_HEIGHT - 110, kContentWidth, 0, framebuffer_);
