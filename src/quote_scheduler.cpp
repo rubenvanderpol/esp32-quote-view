@@ -1,18 +1,18 @@
-#include "quote_scheduler.h"
+#include "quote_scheduler.hpp"
 
+#include <Arduino.h>
 #include <Preferences.h>
 #include <SensorPCF8563.hpp>
 #include <Wire.h>
-#include <stdio.h>
-#include <string.h>
-#include <sys/time.h>
-#include <time.h>
 
-#include "config.h"
+#include <cstdio>
+#include <cstring>
+#include <ctime>
+
+#include "config.hpp"
 #include "utilities.h"
 
-// SensorLib header-only RTC uses this symbol from the base class.
-constexpr uint8_t PCF8563Constants::PCF8563_SLAVE_ADDRESS;
+constexpr std::uint8_t PCF8563Constants::PCF8563_SLAVE_ADDRESS;
 
 namespace {
 
@@ -29,43 +29,43 @@ int parseCompileMonth(const char *month) {
         "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
     };
     for (int i = 0; i < 12; ++i) {
-        if (strncmp(month, names[i], 3) == 0) {
+        if (std::strncmp(month, names[i], 3) == 0) {
             return i + 1;
         }
     }
     return 1;
 }
 
-time_t compileTimeUnix() {
+std::time_t compileTimeUnix() {
     char date[16] = {};
     char time_str[16] = {};
-    strncpy(date, __DATE__, sizeof(date) - 1);
-    strncpy(time_str, __TIME__, sizeof(time_str) - 1);
+    std::strncpy(date, __DATE__, sizeof(date) - 1);
+    std::strncpy(time_str, __TIME__, sizeof(time_str) - 1);
 
     char month[4] = {};
     int day = 1;
     int year = 2026;
-    sscanf(date, "%3s %d %d", month, &day, &year);
+    std::sscanf(date, "%3s %d %d", month, &day, &year);
 
     int hour = 0;
     int minute = 0;
     int second = 0;
-    sscanf(time_str, "%d:%d:%d", &hour, &minute, &second);
+    std::sscanf(time_str, "%d:%d:%d", &hour, &minute, &second);
 
-    struct tm tm_value = {};
+    std::tm tm_value = {};
     tm_value.tm_year = year - 1900;
     tm_value.tm_mon = parseCompileMonth(month) - 1;
     tm_value.tm_mday = day;
     tm_value.tm_hour = hour;
     tm_value.tm_min = minute;
     tm_value.tm_sec = second;
-    return mktime(&tm_value);
+    return std::mktime(&tm_value);
 }
 
 }  // namespace
 
 bool QuoteScheduler::begin() {
-    interval_seconds_ = static_cast<uint32_t>(QUOTE_INTERVAL_HOURS) * 3600U;
+    interval_seconds_ = static_cast<std::uint32_t>(QUOTE_INTERVAL_HOURS) * 3600U;
     g_prefs.begin(kPrefsNamespace, false);
     loadState();
     rtc_ok_ = initRtc();
@@ -85,15 +85,15 @@ bool QuoteScheduler::initRtc() {
 }
 
 bool QuoteScheduler::ensureRtcValid() {
-    struct tm now = {};
+    std::tm now = {};
     g_rtc.getDateTime(&now);
 
     if (now.tm_year + 1900 >= 2024) {
         return true;
     }
 
-    time_t compiled = compileTimeUnix();
-    struct tm *compiled_tm = localtime(&compiled);
+    const std::time_t compiled = compileTimeUnix();
+    std::tm *compiled_tm = std::localtime(&compiled);
     if (!compiled_tm) {
         return false;
     }
@@ -110,33 +110,33 @@ bool QuoteScheduler::ensureRtcValid() {
     return true;
 }
 
-bool QuoteScheduler::readUnixTime(time_t *out) const {
+bool QuoteScheduler::readUnixTime(std::time_t *out) const {
     if (!rtc_ok_ || out == nullptr) {
         return false;
     }
 
-    struct tm now = {};
+    std::tm now = {};
     g_rtc.getDateTime(&now);
 
     if (now.tm_year + 1900 < 2024) {
         return false;
     }
 
-    *out = mktime(&now);
+    *out = std::mktime(&now);
     return *out > 0;
 }
 
 void QuoteScheduler::loadState() {
     index_ = g_prefs.getUInt(kPrefsIndexKey, 0);
-    next_advance_ = static_cast<time_t>(g_prefs.getULong(kPrefsNextKey, 0));
+    next_advance_ = static_cast<std::time_t>(g_prefs.getULong(kPrefsNextKey, 0));
 }
 
 void QuoteScheduler::saveState() {
-    g_prefs.putUInt(kPrefsIndexKey, static_cast<uint32_t>(index_));
-    g_prefs.putULong(kPrefsNextKey, static_cast<uint32_t>(next_advance_));
+    g_prefs.putUInt(kPrefsIndexKey, static_cast<std::uint32_t>(index_));
+    g_prefs.putULong(kPrefsNextKey, static_cast<std::uint32_t>(next_advance_));
 }
 
-bool QuoteScheduler::syncToClock(size_t quote_count) {
+bool QuoteScheduler::syncToClock(std::size_t quote_count) {
     if (quote_count == 0) {
         return false;
     }
@@ -145,7 +145,7 @@ bool QuoteScheduler::syncToClock(size_t quote_count) {
         index_ = 0;
     }
 
-    time_t now = 0;
+    std::time_t now = 0;
     if (!readUnixTime(&now)) {
         if (next_advance_ == 0) {
             next_advance_ = 1;
@@ -155,7 +155,7 @@ bool QuoteScheduler::syncToClock(size_t quote_count) {
     }
 
     if (next_advance_ == 0) {
-        next_advance_ = now + static_cast<time_t>(interval_seconds_);
+        next_advance_ = now + static_cast<std::time_t>(interval_seconds_);
         saveState();
         return false;
     }
@@ -163,7 +163,7 @@ bool QuoteScheduler::syncToClock(size_t quote_count) {
     bool advanced = false;
     while (now >= next_advance_ && quote_count > 0) {
         index_ = (index_ + 1) % quote_count;
-        next_advance_ += static_cast<time_t>(interval_seconds_);
+        next_advance_ += static_cast<std::time_t>(interval_seconds_);
         advanced = true;
     }
 
@@ -178,7 +178,7 @@ bool QuoteScheduler::due() const {
         return false;
     }
 
-    time_t now = 0;
+    std::time_t now = 0;
     if (!readUnixTime(&now)) {
         return false;
     }
@@ -186,31 +186,31 @@ bool QuoteScheduler::due() const {
     return now >= next_advance_;
 }
 
-void QuoteScheduler::advance(size_t quote_count) {
+void QuoteScheduler::advance(std::size_t quote_count) {
     if (quote_count == 0) {
         return;
     }
 
     index_ = (index_ + 1) % quote_count;
 
-    time_t now = 0;
+    std::time_t now = 0;
     if (readUnixTime(&now)) {
-        next_advance_ = now + static_cast<time_t>(interval_seconds_);
+        next_advance_ = now + static_cast<std::time_t>(interval_seconds_);
     } else {
-        next_advance_ += static_cast<time_t>(interval_seconds_);
+        next_advance_ += static_cast<std::time_t>(interval_seconds_);
     }
 
     saveState();
 }
 
-void QuoteScheduler::skip(size_t quote_count) {
+void QuoteScheduler::skip(std::size_t quote_count) {
     advance(quote_count);
 }
 
-uint32_t QuoteScheduler::secondsUntilNext() const {
-    time_t now = 0;
+std::uint32_t QuoteScheduler::secondsUntilNext() const {
+    std::time_t now = 0;
     if (!readUnixTime(&now) || next_advance_ <= now) {
         return 0;
     }
-    return static_cast<uint32_t>(next_advance_ - now);
+    return static_cast<std::uint32_t>(next_advance_ - now);
 }

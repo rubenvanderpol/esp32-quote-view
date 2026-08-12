@@ -1,6 +1,15 @@
 # esp32-quote-view
 
-A quote-of-the-day display for the **LilyGO T5-4.7" E-Paper S3** (ESP32-S3, 960×540 grayscale e-ink). Quotes are stored in a compact binary format on the board's flash filesystem.
+C++17 firmware for the **LilyGO T5-4.7" E-Paper S3** (ESP32-S3, 960×540 grayscale e-ink). Application code is standard C++ (`*.cpp` / `*.hpp`); PlatformIO links it against the Arduino runtime because the LilyGO display driver requires it.
+
+## Project layout
+
+```
+include/          C++ headers (app, store, scheduler, display)
+src/              C++ implementation + main.cpp entry point
+tools/            Host C++ utility (pack_quotes.cpp)
+data/quotes.json  Human-editable quote source
+```
 
 ## Hardware
 
@@ -13,7 +22,7 @@ A quote-of-the-day display for the **LilyGO T5-4.7" E-Paper S3** (ESP32-S3, 960�
 
 Human-editable source: `data/quotes.json`
 
-At build time, `scripts/pack_quotes.py` converts this to `data/quotes.bin`:
+At build time, the host C++ tool `tools/pack_quotes.cpp` converts `data/quotes.json` into `data/quotes.bin`:
 
 | Technique | Why |
 |-----------|-----|
@@ -56,7 +65,7 @@ String pool:      [topic_id:u8][quote_len:u16][source_len:u8][quote][source] ...
    pio device monitor -e T5-ePaper-S3
    ```
 
-Press the side button to skip ahead. Otherwise the display advances to the **next quote in `quotes.json` order** every 6 hours (change `QUOTE_INTERVAL_HOURS` in `src/config.h`).
+Press the side button to skip ahead. Otherwise the display advances to the **next quote in `quotes.json` order** every 6 hours (change `QUOTE_INTERVAL_HOURS` in `include/config.hpp`).
 
 If the board was powered off, it catches up on boot (e.g. 18 hours off → skips ahead 3 quotes).
 
@@ -72,7 +81,8 @@ If the board was powered off, it catches up on boot (e.g. 18 hours off → skips
 You can also pack manually:
 
 ```bash
-python3 scripts/pack_quotes.py
+g++ -std=c++17 -O2 tools/pack_quotes.cpp -o tools/pack_quotes
+./tools/pack_quotes data/quotes.json data/quotes.bin
 ```
 
 ## Debugging from VS Code
@@ -90,7 +100,7 @@ Yes — the ESP32-S3 on this board exposes **USB Serial/JTAG**, so you can debug
 
 3. Select **PIO Debug (T5-ePaper-S3)** and press F5.
 
-   PlatformIO will build, upload, and attach GDB. Set breakpoints in `src/main.cpp`, `quote_store.cpp`, or `quote_display.cpp`.
+   PlatformIO will build, upload, and attach GDB. Set breakpoints in `src/app.cpp`, `quote_store.cpp`, or `quote_display.cpp`.
 
 ### Tips
 
@@ -101,15 +111,15 @@ Yes — the ESP32-S3 on this board exposes **USB Serial/JTAG**, so you can debug
 ## Project layout
 
 ```
-├── boards/T5-ePaper-S3.json   # LilyGO board definition
+├── include/                   # C++ headers
+├── tools/pack_quotes.cpp      # Host C++ JSON → binary packer
 ├── data/quotes.json           # Edit quotes here
-├── scripts/pack_quotes.py     # JSON → binary packer
 ├── src/
-│   ├── main.cpp               # Schedule loop + button skip
+│   ├── main.cpp               # setup()/loop() entry
+│   ├── app.cpp                # Application orchestration
 │   ├── quote_scheduler.cpp    # RTC-based interval rotation
 │   ├── quote_store.cpp        # LittleFS binary reader
 │   └── quote_display.cpp      # E-paper layout
-│   └── config.h               # QUOTE_INTERVAL_HOURS
 └── platformio.ini
 ```
 

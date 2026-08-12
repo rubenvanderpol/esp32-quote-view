@@ -1,6 +1,8 @@
-#include "quote_display.h"
+#include "quote_display.hpp"
 
-#include <string.h>
+#include <Arduino.h>
+#include <cstdio>
+#include <cstring>
 
 #include "epd_driver.h"
 #include "firasans.h"
@@ -8,16 +10,14 @@
 
 namespace {
 
-constexpr int32_t kMarginX = 48;
-constexpr int32_t kMarginY = 56;
-constexpr int32_t kContentWidth = EPD_WIDTH - (kMarginX * 2);
-constexpr int32_t kBodyLineHeight = 52;
-constexpr int32_t kMetaLineHeight = 40;
+constexpr std::int32_t kMarginX = 48;
+constexpr std::int32_t kContentWidth = EPD_WIDTH - (kMarginX * 2);
+constexpr std::int32_t kBodyLineHeight = 52;
 
-void drawCentered(const char *text, int32_t y, uint8_t *framebuffer) {
-    int32_t cursor_x = kMarginX;
-    int32_t cursor_y = y;
-    write_string((GFXfont *)&FiraSans, (char *)text, &cursor_x, &cursor_y, framebuffer);
+void drawCentered(const char *text, std::int32_t y, std::uint8_t *framebuffer) {
+    std::int32_t cursor_x = kMarginX;
+    std::int32_t cursor_y = y;
+    write_string((GFXfont *)&FiraSans, const_cast<char *>(text), &cursor_x, &cursor_y, framebuffer);
 }
 
 }  // namespace
@@ -25,60 +25,60 @@ void drawCentered(const char *text, int32_t y, uint8_t *framebuffer) {
 bool QuoteDisplay::begin() {
     epd_init();
 
-    framebuffer_ = static_cast<uint8_t *>(
-        ps_calloc(sizeof(uint8_t), EPD_WIDTH * EPD_HEIGHT / 2));
+    framebuffer_ = static_cast<std::uint8_t *>(
+        ps_calloc(sizeof(std::uint8_t), EPD_WIDTH * EPD_HEIGHT / 2));
     if (!framebuffer_) {
         Serial.println("framebuffer alloc failed");
         return false;
     }
 
-    memset(framebuffer_, 0xFF, EPD_WIDTH * EPD_HEIGHT / 2);
+    std::memset(framebuffer_, 0xFF, EPD_WIDTH * EPD_HEIGHT / 2);
     return true;
 }
 
-int32_t QuoteDisplay::measureLineWidth(const char *start, const char *end) {
+std::int32_t QuoteDisplay::measureLineWidth(const char *start, const char *end) {
     char buffer[256];
-    size_t len = static_cast<size_t>(end - start);
+    std::size_t len = static_cast<std::size_t>(end - start);
     if (len >= sizeof(buffer)) {
         len = sizeof(buffer) - 1;
     }
-    memcpy(buffer, start, len);
+    std::memcpy(buffer, start, len);
     buffer[len] = '\0';
 
-    int32_t cursor_x = 0;
-    int32_t cursor_y = 0;
+    std::int32_t cursor_x = 0;
+    std::int32_t cursor_y = 0;
     write_string((GFXfont *)&FiraSans, buffer, &cursor_x, &cursor_y, nullptr);
     return cursor_x;
 }
 
-void QuoteDisplay::drawWrappedText(const char *text, int32_t x, int32_t y,
-                                   int32_t max_width, int32_t line_height,
-                                   uint8_t *framebuffer) {
+void QuoteDisplay::drawWrappedText(const char *text, std::int32_t x, std::int32_t y,
+                                   std::int32_t max_width, std::int32_t line_height,
+                                   std::uint8_t *framebuffer) {
     if (!text || text[0] == '\0') {
         return;
     }
 
     const char *word = text;
     const char *cursor = text;
-    int32_t line_y = y;
+    std::int32_t line_y = y;
 
     while (*cursor) {
         while (*cursor && *cursor != ' ' && *cursor != '\n') {
             ++cursor;
         }
 
-        int32_t candidate_width = measureLineWidth(text, cursor);
+        const std::int32_t candidate_width = measureLineWidth(text, cursor);
         if (candidate_width > max_width && word > text) {
             char line[256];
-            size_t line_len = static_cast<size_t>(word - text - 1);
+            std::size_t line_len = static_cast<std::size_t>(word - text - 1);
             if (line_len >= sizeof(line)) {
                 line_len = sizeof(line) - 1;
             }
-            memcpy(line, text, line_len);
+            std::memcpy(line, text, line_len);
             line[line_len] = '\0';
 
-            int32_t cursor_x = x;
-            int32_t cursor_y = line_y;
+            std::int32_t cursor_x = x;
+            std::int32_t cursor_y = line_y;
             write_string((GFXfont *)&FiraSans, line, &cursor_x, &cursor_y, framebuffer);
             line_y += line_height;
 
@@ -92,15 +92,15 @@ void QuoteDisplay::drawWrappedText(const char *text, int32_t x, int32_t y,
 
         if (*cursor == '\n') {
             char line[256];
-            size_t line_len = static_cast<size_t>(cursor - text);
+            std::size_t line_len = static_cast<std::size_t>(cursor - text);
             if (line_len >= sizeof(line)) {
                 line_len = sizeof(line) - 1;
             }
-            memcpy(line, text, line_len);
+            std::memcpy(line, text, line_len);
             line[line_len] = '\0';
 
-            int32_t cursor_x = x;
-            int32_t cursor_y = line_y;
+            std::int32_t cursor_x = x;
+            std::int32_t cursor_y = line_y;
             write_string((GFXfont *)&FiraSans, line, &cursor_x, &cursor_y, framebuffer);
             line_y += line_height;
 
@@ -123,17 +123,16 @@ void QuoteDisplay::drawWrappedText(const char *text, int32_t x, int32_t y,
     }
 
     if (text < cursor || *text) {
-        int32_t cursor_x = x;
-        int32_t cursor_y = line_y;
-        write_string((GFXfont *)&FiraSans, (char *)text, &cursor_x, &cursor_y, framebuffer);
+        std::int32_t cursor_x = x;
+        std::int32_t cursor_y = line_y;
+        write_string((GFXfont *)&FiraSans, const_cast<char *>(text), &cursor_x, &cursor_y, framebuffer);
     }
 }
 
-void QuoteDisplay::show(const QuoteRecord &quote, size_t index, size_t total,
-                        uint32_t seconds_until_next) {
-    memset(framebuffer_, 0xFF, EPD_WIDTH * EPD_HEIGHT / 2);
+void QuoteDisplay::show(const QuoteRecord &quote, std::size_t index, std::size_t total,
+                        std::uint32_t seconds_until_next) {
+    std::memset(framebuffer_, 0xFF, EPD_WIDTH * EPD_HEIGHT / 2);
 
-  // Topic badge
     epd_fill_rect(kMarginX, 36, 220, 52, 0x0000, framebuffer_);
     FontProperties inverted = {
         .fg_color = 15,
@@ -141,42 +140,37 @@ void QuoteDisplay::show(const QuoteRecord &quote, size_t index, size_t total,
         .fallback_glyph = 0,
         .flags = 0,
     };
-    int32_t topic_x = kMarginX + 16;
-    int32_t topic_y = 72;
-    write_mode((GFXfont *)&FiraSans, quote.topic.c_str(), &topic_x, &topic_y,
-               framebuffer_, WHITE_ON_BLACK, &inverted);
+    std::int32_t topic_x = kMarginX + 16;
+    std::int32_t topic_y = 72;
+    write_mode((GFXfont *)&FiraSans, const_cast<char *>(quote.topic.c_str()), &topic_x,
+               &topic_y, framebuffer_, WHITE_ON_BLACK, &inverted);
 
-  // Opening quote mark
-    int32_t mark_x = kMarginX;
-    int32_t mark_y = 150;
-    write_string((GFXfont *)&FiraSans, (char *)"\xE2\x80\x9C", &mark_x, &mark_y, framebuffer_);
+    std::int32_t mark_x = kMarginX;
+    std::int32_t mark_y = 150;
+    write_string((GFXfont *)&FiraSans, const_cast<char *>("\xE2\x80\x9C"), &mark_x, &mark_y, framebuffer_);
 
-  // Quote body
-    drawWrappedText(quote.quote.c_str(), kMarginX, 210, kContentWidth, kBodyLineHeight,
-                    framebuffer_);
+    drawWrappedText(quote.quote.c_str(), kMarginX, 210, kContentWidth, kBodyLineHeight, framebuffer_);
 
-  // Attribution
     char attribution[160];
-    snprintf(attribution, sizeof(attribution), "\xE2\x80\x94 %s", quote.source.c_str());
-    int32_t attr_x = kMarginX;
-    int32_t attr_y = EPD_HEIGHT - 150;
+    std::snprintf(attribution, sizeof(attribution), "\xE2\x80\x94 %s", quote.source.c_str());
+    std::int32_t attr_x = kMarginX;
+    std::int32_t attr_y = EPD_HEIGHT - 150;
     write_string((GFXfont *)&FiraSans, attribution, &attr_x, &attr_y, framebuffer_);
 
-  // Footer
     char footer[80];
     if (seconds_until_next > 0) {
-        const uint32_t hours = seconds_until_next / 3600U;
-        const uint32_t minutes = (seconds_until_next % 3600U) / 60U;
+        const std::uint32_t hours = seconds_until_next / 3600U;
+        const std::uint32_t minutes = (seconds_until_next % 3600U) / 60U;
         if (hours > 0) {
-            snprintf(footer, sizeof(footer), "%u / %u   Next in %uh %um",
-                     static_cast<unsigned>(index + 1), static_cast<unsigned>(total), hours, minutes);
+            std::snprintf(footer, sizeof(footer), "%u / %u   Next in %uh %um",
+                          static_cast<unsigned>(index + 1), static_cast<unsigned>(total), hours, minutes);
         } else {
-            snprintf(footer, sizeof(footer), "%u / %u   Next in %um", static_cast<unsigned>(index + 1),
-                     static_cast<unsigned>(total), minutes);
+            std::snprintf(footer, sizeof(footer), "%u / %u   Next in %um",
+                          static_cast<unsigned>(index + 1), static_cast<unsigned>(total), minutes);
         }
     } else {
-        snprintf(footer, sizeof(footer), "%u / %u", static_cast<unsigned>(index + 1),
-                 static_cast<unsigned>(total));
+        std::snprintf(footer, sizeof(footer), "%u / %u", static_cast<unsigned>(index + 1),
+                      static_cast<unsigned>(total));
     }
     drawCentered(footer, EPD_HEIGHT - 70, framebuffer_);
 

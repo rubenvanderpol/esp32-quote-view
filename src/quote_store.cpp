@@ -1,14 +1,12 @@
-#include "quote_store.h"
+#include "quote_store.hpp"
 
+#include <Arduino.h>
 #include <LittleFS.h>
 
-namespace {
+#include <cstring>
+#include <string>
 
-constexpr char kQuotesPath[] = "/quotes.bin";
-constexpr char kMagic[] = "QTE1";
-constexpr uint8_t kVersion = 1;
-
-}  // namespace
+#include "quote_format.hpp"
 
 bool QuoteStore::begin() {
     if (!LittleFS.begin(true)) {
@@ -17,7 +15,7 @@ bool QuoteStore::begin() {
     }
 
     if (!loadHeader()) {
-        Serial.println("quotes.bin missing or invalid — run pack_quotes.py and uploadfs");
+        Serial.println("quotes.bin missing or invalid — run tools/pack_quotes and uploadfs");
         return false;
     }
 
@@ -27,46 +25,47 @@ bool QuoteStore::begin() {
 }
 
 bool QuoteStore::loadHeader() {
-    File file = LittleFS.open(kQuotesPath, "r");
+    File file = LittleFS.open(quote::kQuotesPath, "r");
     if (!file) {
         return false;
     }
 
     char magic[4] = {};
-    if (file.read((uint8_t *)magic, 4) != 4 || memcmp(magic, kMagic, 4) != 0) {
+    if (file.read(reinterpret_cast<std::uint8_t *>(magic), 4) != 4
+        || std::memcmp(magic, quote::kMagic, 4) != 0) {
         file.close();
         return false;
     }
 
-    uint8_t version = file.read();
-    if (version != kVersion) {
+    const std::uint8_t version = file.read();
+    if (version != quote::kFormatVersion) {
         file.close();
         return false;
     }
 
-    uint8_t count_bytes[3] = {};
+    std::uint8_t count_bytes[3] = {};
     if (file.read(count_bytes, 3) != 3) {
         file.close();
         return false;
     }
 
-    quote_count_ = count_bytes[0] | (count_bytes[1] << 8);
+    quote_count_ = static_cast<std::uint16_t>(count_bytes[0] | (count_bytes[1] << 8));
     topic_count_ = count_bytes[2];
 
-    if (file.read() != 0) {  // reserved byte
+    if (file.read() != 0) {
         file.close();
         return false;
     }
 
-    topics_offset_ = 9;
+    topics_offset_ = quote::kHeaderSize;
     topics_.clear();
     topics_.reserve(topic_count_);
 
     file.seek(topics_offset_);
-    for (uint8_t i = 0; i < topic_count_; ++i) {
-        String topic;
+    for (std::uint8_t i = 0; i < topic_count_; ++i) {
+        std::string topic;
         while (file.available()) {
-            int ch = file.read();
+            const int ch = file.read();
             if (ch < 0) {
                 file.close();
                 return false;
@@ -74,90 +73,90 @@ bool QuoteStore::loadHeader() {
             if (ch == 0) {
                 break;
             }
-            topic += static_cast<char>(ch);
+            topic.push_back(static_cast<char>(ch));
         }
-        topics_.push_back(topic);
+        topics_.push_back(std::move(topic));
     }
 
     offsets_offset_ = file.position();
-    pool_offset_ = offsets_offset_ + (static_cast<size_t>(quote_count_) * sizeof(uint32_t));
+    pool_offset_ = offsets_offset_ + (static_cast<std::size_t>(quote_count_) * sizeof(std::uint32_t));
     file.close();
     return quote_count_ > 0;
 }
 
-const char *QuoteStore::topicName(uint8_t topic_id) const {
+const char *QuoteStore::topicName(std::uint8_t topic_id) const {
     if (topic_id >= topics_.size()) {
         return "unknown";
     }
     return topics_[topic_id].c_str();
 }
 
-bool QuoteStore::readRecord(size_t index, QuoteRecord &out) const {
+bool QuoteStore::readRecord(std::size_t index, QuoteRecord &out) const {
     if (!ready_ || index >= quote_count_) {
         return false;
     }
 
-    File file = LittleFS.open(kQuotesPath, "r");
+    File file = LittleFS.open(quote::kQuotesPath, "r");
     if (!file) {
         return false;
     }
 
-    file.seek(offsets_offset_ + (index * sizeof(uint32_t)));
-    uint8_t offset_bytes[4] = {};
+    file.seek(offsets_offset_ + (index * sizeof(std::uint32_t)));
+    std::uint8_t offset_bytes[4] = {};
     if (file.read(offset_bytes, 4) != 4) {
         file.close();
         return false;
     }
 
-    uint32_t record_offset = offset_bytes[0]
+    const std::uint32_t record_offset = offset_bytes[0]
         | (offset_bytes[1] << 8)
         | (offset_bytes[2] << 16)
         | (offset_bytes[3] << 24);
 
     file.seek(pool_offset_ + record_offset);
 
-    int topic_id = file.read();
+    const int topic_id = file.read();
     if (topic_id < 0) {
         file.close();
         return false;
     }
 
-    uint8_t lengths[3] = {};
+    std::uint8_t lengths[3] = {};
     if (file.read(lengths, 3) != 3) {
         file.close();
         return false;
     }
 
-    uint16_t quote_len = lengths[0] | (lengths[1] << 8);
-    uint8_t source_len = lengths[2];
+    const std::uint16_t quote_len = static_cast<std::uint16_t>(lengths[0] | (lengths[1] << 8));
+    const std::uint8_t source_len = lengths[2];
 
+    out.quote.clear();
     out.quote.reserve(quote_len);
-    out.quote = "";
-    for (uint16_t i = 0; i < quote_len; ++i) {
-        int ch = file.read();
+    for (std::uint16_t i = 0; i < quote_len; ++i) {
+        const int ch = file.read();
         if (ch < 0) {
             file.close();
             return false;
         }
-        out.quote += static_cast<char>(ch);
+        out.quote.push_back(static_cast<char>(ch));
     }
 
+    out.source.clear();
     out.source.reserve(source_len);
-    out.source = "";
-    for (uint8_t i = 0; i < source_len; ++i) {
-        int ch = file.read();
+    for (std::uint8_t i = 0; i < source_len; ++i) {
+        const int ch = file.read();
         if (ch < 0) {
             file.close();
             return false;
         }
-        out.source += static_cast<char>(ch);
+        out.source.push_back(static_cast<char>(ch));
     }
 
-    out.topic = topicName(static_cast<uint8_t>(topic_id));
+    out.topic = topicName(static_cast<std::uint8_t>(topic_id));
     file.close();
     return true;
 }
 
-bool QuoteStore::get(size_t index, QuoteRecord &out) const {
+bool QuoteStore::get(std::size_t index, QuoteRecord &out) const {
     return readRecord(index, out);
 }
