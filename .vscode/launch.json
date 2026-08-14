@@ -6,6 +6,12 @@
       "type": "platformio-debug",
       "request": "launch",
       "projectEnvName": "T5-ePaper-S3"
+    },
+    {
+      "name": "PIO Debug (T5-ePaper-S3-no-sleep)",
+      "type": "platformio-debug",
+      "request": "launch",
+      "projectEnvName": "T5-ePaper-S3-no-sleep"
     }
   ]
 }

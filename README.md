@@ -54,6 +54,12 @@ String pool:      [topic_id:u8][quote_len:u16][source_len:u8][quote][source] ...
    pio run -e T5-ePaper-S3 -t upload
    ```
 
+   For **USB debugging** (no deep sleep, continuous serial, polled button):
+
+   ```bash
+   pio run -e T5-ePaper-S3-no-sleep -t upload
+   ```
+
 5. Upload the quote database to flash:
 
    ```bash
@@ -77,7 +83,12 @@ By default the firmware uses **deep sleep** between updates (`ENABLE_DEEP_SLEEP`
 
 On wake the ESP32 reboots, reloads the quote index from NVS flash, handles the wake reason, redraws, and sleeps again. LilyGO reports roughly **~388 µA** with timer + GPIO wake on this board.
 
-Set `ENABLE_DEEP_SLEEP` to `0` while debugging over USB if you want continuous serial output and polled button handling instead of wake-on-press.
+Set `ENABLE_DEEP_SLEEP` to `0` in `include/config.hpp`, or use the **`T5-ePaper-S3-no-sleep`** PlatformIO environment (recommended for development).
+
+| Environment | Deep sleep | Use for |
+|-------------|------------|---------|
+| `T5-ePaper-S3` | On | Battery / final install |
+| `T5-ePaper-S3-no-sleep` | Off | USB debug, serial monitor, breakpoints |
 
 All text is rendered in **Lora** (28 px serif). To regenerate `include/lora.h` after changing the font or size, run `python3 scripts/fontconvert_lora.py` (requires `freetype-py`).
 
@@ -105,14 +116,14 @@ Yes — the ESP32-S3 on this board exposes **USB Serial/JTAG**, so you can debug
 
 ### Setup
 
-1. Use the `T5-ePaper-S3` environment (already set as default). It enables:
+1. Use the `T5-ePaper-S3-no-sleep` environment for everyday debugging (stays awake), or `T5-ePaper-S3` if you need to test deep-sleep wake behavior. Both enable:
    - `debug_tool = esp-builtin` (on-chip JTAG)
    - `build_type = debug` (symbols, no aggressive optimisation)
    - `debug_init_break = tbreak setup` (pause at `setup()`)
 
 2. In VS Code, open **Run and Debug** (Ctrl+Shift+D).
 
-3. Select **PIO Debug (T5-ePaper-S3)** and press F5.
+3. Select **PIO Debug (T5-ePaper-S3-no-sleep)** (or the deep-sleep env) and press F5.
 
    PlatformIO will build, upload, and attach GDB. Set breakpoints in `src/app.cpp`, `quote_store.cpp`, or `quote_display.cpp`.
 
