@@ -43,8 +43,8 @@ void QuoteApp::showQuoteAt(std::size_t index) {
         return;
     }
 
-    Serial.printf("[%u] %s — %s\n", static_cast<unsigned>(index), record.source.c_str(),
-                  record.quote.c_str());
+    Serial.printf("[%u] %s — %s\n", static_cast<unsigned>(index), record.quote.c_str(),
+                  record.source.c_str());
     g_display.show(record, index, g_store.count(), g_scheduler.secondsUntilNext());
 }
 
@@ -77,9 +77,9 @@ void QuoteApp::checkSchedule() {
     }
 }
 
-void QuoteApp::handleWakeCause() {
+bool QuoteApp::handleWakeCause() {
     if (g_store.count() == 0) {
-        return;
+        return false;
     }
 
     const esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
@@ -87,13 +87,17 @@ void QuoteApp::handleWakeCause() {
         case ESP_SLEEP_WAKEUP_EXT1:
             Serial.println("Wake: button — skipping to next quote");
             g_scheduler.skip(g_store.count());
-            break;
+            g_scheduler.syncToClock(g_store.count());
+            return true;
         case ESP_SLEEP_WAKEUP_TIMER:
             Serial.println("Wake: timer — checking schedule");
-            break;
+            // The esp timer can fire slightly before the RTC deadline; skip the
+            // e-paper refresh (the panel retains the image) and sleep again.
+            return g_scheduler.syncToClock(g_store.count());
         default:
             Serial.println("Wake: cold boot");
-            break;
+            g_scheduler.syncToClock(g_store.count());
+            return true;
     }
 }
 
@@ -105,9 +109,17 @@ void QuoteApp::enterDeepSleep() {
         sleep_seconds = g_scheduler.intervalSeconds();
     }
 
+    // If the wake button is still held, arming ANY_LOW now would re-wake
+    // immediately and skip several quotes per press.
+    pinMode(BUTTON_1, INPUT_PULLUP);
+    while (digitalRead(BUTTON_1) == LOW) {
+        delay(10);
+    }
+    delay(50);
+
     const std::uint64_t sleep_us = static_cast<std::uint64_t>(sleep_seconds) * 1000000ULL;
     esp_sleep_enable_timer_wakeup(sleep_us);
-    esp_sleep_enable_ext1_wakeup(_BV(GPIO_NUM_21), ESP_EXT1_WAKEUP_ANY_LOW);
+    esp_sleep_enable_ext1_wakeup(_BV(BUTTON_1), ESP_EXT1_WAKEUP_ANY_LOW);
 
     Serial.printf("Deep sleep for %u s (index %u)\n", sleep_seconds,
                   static_cast<unsigned>(g_scheduler.currentIndex()));
@@ -144,9 +156,11 @@ void QuoteApp::setup() {
     g_button.setPressedHandler(handleButtonPressed);
 #endif
 
-    handleWakeCause();
-    g_scheduler.syncToClock(g_store.count());
-    showCurrentQuote();
+    if (handleWakeCause()) {
+        showCurrentQuote();
+    } else {
+        Serial.println("Nothing due yet — keeping current display");
+    }
     initialized_ = true;
 
 #if ENABLE_DEEP_SLEEP

@@ -2,4 +2,4 @@
 
 #include "lora.h"
 
-inline GFXfont *kDisplayFont = const_cast<GFXfont *>(&Lora);
+inline const GFXfont *kDisplayFont = &Lora;

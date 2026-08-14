@@ -92,8 +92,6 @@ def main() -> int:
             glyph_props.append(glyph)
             glyph_data.extend(compressed)
 
-    face.load_glyph(face.get_char_index(ord("|")), freetype.FT_LOAD_RENDER)
-
     lines = [
         "#pragma once",
         "#include \"epd_driver.h\"",

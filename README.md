@@ -5,11 +5,18 @@ C++17 firmware for the **LilyGO T5-4.7" E-Paper S3** (ESP32-S3, 960×540 graysca
 ## Project layout
 
 ```
-include/          C++ headers (app, store, scheduler, display, lora.h)
-assets/fonts/     Lora-Regular.ttf (SIL Open Font License)
-src/              C++ implementation + main.cpp entry point
-tools/            Host C++ utility (pack_quotes.cpp)
-data/quotes.json  Human-editable quote source
+├── include/                   # C++ headers (app, store, scheduler, display, lora.h)
+├── assets/fonts/              # Lora-Regular.ttf (SIL Open Font License)
+├── tools/pack_quotes.cpp      # Host C++ JSON → binary packer
+├── data/quotes.json           # Edit quotes here
+├── fs/                        # Generated LittleFS image source (quotes.bin only)
+├── src/
+│   ├── main.cpp               # setup()/loop() entry
+│   ├── app.cpp                # Application orchestration
+│   ├── quote_scheduler.cpp    # RTC-based interval rotation
+│   ├── quote_store.cpp        # LittleFS binary reader
+│   └── quote_display.cpp      # E-paper layout
+└── platformio.ini
 ```
 
 ## Hardware
@@ -23,7 +30,7 @@ data/quotes.json  Human-editable quote source
 
 Human-editable source: `data/quotes.json`
 
-At build time, the host C++ tool `tools/pack_quotes.cpp` converts `data/quotes.json` into `data/quotes.bin`:
+At build time, the host C++ tool `tools/pack_quotes.cpp` converts `data/quotes.json` into `fs/quotes.bin` (the `fs/` directory is the LittleFS image source, so only the compact binary is shipped to the device). Standard JSON escapes (`\n`, `\t`, `\uXXXX` including surrogate pairs) are decoded to UTF-8, and quotes longer than 400 bytes are rejected at build time because they cannot fit on screen (the display also truncates gracefully with an ellipsis):
 
 | Technique | Why |
 |-----------|-----|
@@ -90,7 +97,7 @@ Set `ENABLE_DEEP_SLEEP` to `0` in `include/config.hpp`, or use the **`T5-ePaper-
 | `T5-ePaper-S3` | On | Battery / final install |
 | `T5-ePaper-S3-no-sleep` | Off | USB debug, serial monitor, breakpoints |
 
-All text is rendered in **Lora** (28 px serif). To regenerate `include/lora.h` after changing the font or size, run `python3 scripts/fontconvert_lora.py` (requires `freetype-py`).
+All text is rendered in **Lora** (28 pt at 150 DPI, roughly a 58 px em). The generated `include/lora.h` is committed; regular builds do not need any font tooling. To regenerate it after changing the font or size, run `python3 scripts/fontconvert_lora.py` (requires `pip install freetype-py`).
 
 If the board was powered off, it catches up on boot (e.g. 18 hours off → skips ahead 3 quotes).
 
@@ -107,7 +114,7 @@ You can also pack manually:
 
 ```bash
 g++ -std=c++17 -O2 tools/pack_quotes.cpp -o tools/pack_quotes
-./tools/pack_quotes data/quotes.json data/quotes.bin
+./tools/pack_quotes data/quotes.json fs/quotes.bin
 ```
 
 ## Debugging from VS Code
@@ -132,21 +139,6 @@ Yes — the ESP32-S3 on this board exposes **USB Serial/JTAG**, so you can debug
 - If the debug port is not found, check that **USB Mode** is *Hardware CDC and JTAG* (PlatformIO board profile handles this).
 - Serial `Serial.println()` still works over the same USB connection while debugging.
 - For everyday iteration, serial logging is often faster than full JTAG sessions on e-paper projects (each refresh takes ~1 s).
-
-## Project layout
-
-```
-├── include/                   # C++ headers
-├── tools/pack_quotes.cpp      # Host C++ JSON → binary packer
-├── data/quotes.json           # Edit quotes here
-├── src/
-│   ├── main.cpp               # setup()/loop() entry
-│   ├── app.cpp                # Application orchestration
-│   ├── quote_scheduler.cpp    # RTC-based interval rotation
-│   ├── quote_store.cpp        # LittleFS binary reader
-│   └── quote_display.cpp      # E-paper layout
-└── platformio.ini
-```
 
 ## Dependencies
 

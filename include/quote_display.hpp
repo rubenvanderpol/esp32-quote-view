@@ -14,8 +14,7 @@ public:
 
 private:
     void drawWrappedText(const char *text, std::int32_t x, std::int32_t y, std::int32_t max_width,
-                         std::int32_t line_height, std::uint8_t *framebuffer);
-    std::int32_t measureLineWidth(const char *start, const char *end);
+                         std::int32_t line_height, std::int32_t max_y, std::uint8_t *framebuffer);
 
     std::uint8_t *framebuffer_ = nullptr;
 };
