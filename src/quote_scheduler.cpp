@@ -12,13 +12,15 @@
 #include "config.hpp"
 #include "utilities.h"
 
-constexpr std::uint8_t PCF8563Constants::PCF8563_SLAVE_ADDRESS;
-
 namespace {
 
 constexpr char kPrefsNamespace[] = "quoteview";
 constexpr char kPrefsIndexKey[] = "index";
 constexpr char kPrefsNextKey[] = "next_adv";
+
+// 2024-01-01 UTC. Timestamps below this are impossible (the RTC validity
+// check uses the same year), so treat persisted values below it as unset.
+constexpr std::time_t kMinValidTime = 1704067200;
 
 Preferences g_prefs;
 SensorPCF8563 g_rtc;
@@ -129,9 +131,15 @@ bool QuoteScheduler::readUnixTime(std::time_t *out) const {
 void QuoteScheduler::loadState() {
     index_ = g_prefs.getUInt(kPrefsIndexKey, 0);
     next_advance_ = static_cast<std::time_t>(g_prefs.getULong(kPrefsNextKey, 0));
+    if (next_advance_ != 0 && next_advance_ < kMinValidTime) {
+        // Impossible timestamp (e.g. leftover from an older firmware); reschedule from scratch
+        // instead of "catching up" across decades of phantom intervals.
+        next_advance_ = 0;
+    }
 }
 
 void QuoteScheduler::saveState() {
+    // next_advance_ is narrowed to uint32 (Preferences has no 64-bit slot); good until 2106.
     g_prefs.putUInt(kPrefsIndexKey, static_cast<std::uint32_t>(index_));
     g_prefs.putULong(kPrefsNextKey, static_cast<std::uint32_t>(next_advance_));
 }
@@ -147,10 +155,6 @@ bool QuoteScheduler::syncToClock(std::size_t quote_count) {
 
     std::time_t now = 0;
     if (!readUnixTime(&now)) {
-        if (next_advance_ == 0) {
-            next_advance_ = 1;
-            saveState();
-        }
         return false;
     }
 
@@ -160,17 +164,18 @@ bool QuoteScheduler::syncToClock(std::size_t quote_count) {
         return false;
     }
 
-    bool advanced = false;
-    while (now >= next_advance_ && quote_count > 0) {
-        index_ = (index_ + 1) % quote_count;
-        next_advance_ += static_cast<std::time_t>(interval_seconds_);
-        advanced = true;
+    if (now < next_advance_) {
+        return false;
     }
 
-    if (advanced) {
-        saveState();
-    }
-    return advanced;
+    // Catch up on every interval that elapsed while powered off.
+    const std::time_t interval = static_cast<std::time_t>(interval_seconds_);
+    const std::time_t missed = (now - next_advance_) / interval + 1;
+    index_ = (index_ + static_cast<std::size_t>(missed % static_cast<std::time_t>(quote_count)))
+             % quote_count;
+    next_advance_ += missed * interval;
+    saveState();
+    return true;
 }
 
 bool QuoteScheduler::due() const {
