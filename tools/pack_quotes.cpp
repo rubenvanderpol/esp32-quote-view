@@ -1,5 +1,6 @@
 #include <cstdint>
 #include <cstring>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
@@ -75,12 +76,21 @@ public:
 
 private:
     char peek() const {
+        if (index_ >= input_.size()) {
+            throw std::runtime_error("Unexpected end of input");
+        }
         return input_[index_];
+    }
+
+    char take() {
+        const char ch = peek();
+        ++index_;
+        return ch;
     }
 
     void expect(char ch) {
         skipWhitespace();
-        if (input_[index_] != ch) {
+        if (peek() != ch) {
             throw std::runtime_error(std::string("Expected '") + ch + "'");
         }
         ++index_;
@@ -92,20 +102,98 @@ private:
         }
     }
 
+    std::uint32_t parseHex4() {
+        std::uint32_t value = 0;
+        for (int i = 0; i < 4; ++i) {
+            const char ch = take();
+            value <<= 4;
+            if (ch >= '0' && ch <= '9') {
+                value |= static_cast<std::uint32_t>(ch - '0');
+            } else if (ch >= 'a' && ch <= 'f') {
+                value |= static_cast<std::uint32_t>(ch - 'a' + 10);
+            } else if (ch >= 'A' && ch <= 'F') {
+                value |= static_cast<std::uint32_t>(ch - 'A' + 10);
+            } else {
+                throw std::runtime_error("Invalid \\u escape: expected 4 hex digits");
+            }
+        }
+        return value;
+    }
+
+    static void appendUtf8(std::string &out, std::uint32_t cp) {
+        if (cp <= 0x7F) {
+            out.push_back(static_cast<char>(cp));
+        } else if (cp <= 0x7FF) {
+            out.push_back(static_cast<char>(0xC0 | (cp >> 6)));
+            out.push_back(static_cast<char>(0x80 | (cp & 0x3F)));
+        } else if (cp <= 0xFFFF) {
+            out.push_back(static_cast<char>(0xE0 | (cp >> 12)));
+            out.push_back(static_cast<char>(0x80 | ((cp >> 6) & 0x3F)));
+            out.push_back(static_cast<char>(0x80 | (cp & 0x3F)));
+        } else {
+            out.push_back(static_cast<char>(0xF0 | (cp >> 18)));
+            out.push_back(static_cast<char>(0x80 | ((cp >> 12) & 0x3F)));
+            out.push_back(static_cast<char>(0x80 | ((cp >> 6) & 0x3F)));
+            out.push_back(static_cast<char>(0x80 | (cp & 0x3F)));
+        }
+    }
+
+    std::uint32_t parseUnicodeEscape() {
+        std::uint32_t cp = parseHex4();
+        if (cp >= 0xDC00 && cp <= 0xDFFF) {
+            throw std::runtime_error("Invalid \\u escape: unpaired low surrogate");
+        }
+        if (cp >= 0xD800 && cp <= 0xDBFF) {
+            if (take() != '\\' || take() != 'u') {
+                throw std::runtime_error("Invalid \\u escape: high surrogate not followed by \\u");
+            }
+            const std::uint32_t low = parseHex4();
+            if (low < 0xDC00 || low > 0xDFFF) {
+                throw std::runtime_error("Invalid \\u escape: expected low surrogate");
+            }
+            cp = 0x10000 + ((cp - 0xD800) << 10) + (low - 0xDC00);
+        }
+        return cp;
+    }
+
     std::string parseString() {
         skipWhitespace();
         expect('"');
         std::string value;
-        while (index_ < input_.size() && input_[index_] != '"') {
-            if (input_[index_] == '\\') {
-                ++index_;
-                if (index_ >= input_.size()) {
-                    break;
-                }
-                value.push_back(input_[index_++]);
+        while (peek() != '"') {
+            const char ch = take();
+            if (ch != '\\') {
+                value.push_back(ch);
                 continue;
             }
-            value.push_back(input_[index_++]);
+            const char esc = take();
+            switch (esc) {
+                case '"':
+                case '\\':
+                case '/':
+                    value.push_back(esc);
+                    break;
+                case 'b':
+                    value.push_back('\b');
+                    break;
+                case 'f':
+                    value.push_back('\f');
+                    break;
+                case 'n':
+                    value.push_back('\n');
+                    break;
+                case 'r':
+                    value.push_back('\r');
+                    break;
+                case 't':
+                    value.push_back('\t');
+                    break;
+                case 'u':
+                    appendUtf8(value, parseUnicodeEscape());
+                    break;
+                default:
+                    throw std::runtime_error(std::string("Unsupported escape: \\") + esc);
+            }
         }
         expect('"');
         return value;
@@ -233,6 +321,9 @@ std::vector<std::uint8_t> packDocument(const Document &doc) {
     if (doc.quotes.size() > 0xFFFF) {
         throw std::runtime_error("too many quotes");
     }
+    if (doc.topics.size() > 0xFF) {
+        throw std::runtime_error("too many topics (max 255)");
+    }
 
     std::unordered_map<std::string, std::uint8_t> topic_index;
     for (std::size_t i = 0; i < doc.topics.size(); ++i) {
@@ -253,8 +344,9 @@ std::vector<std::uint8_t> packDocument(const Document &doc) {
         if (it == topic_index.end()) {
             throw std::runtime_error("unknown topic: " + entry.topic);
         }
-        if (entry.quote.size() > 0xFFFF) {
-            throw std::runtime_error("quote too long");
+        if (entry.quote.size() > quote::kMaxQuoteBytes) {
+            throw std::runtime_error("quote too long (max " + std::to_string(quote::kMaxQuoteBytes)
+                                     + " bytes): " + entry.quote.substr(0, 40) + "...");
         }
         if (entry.source.size() > 0xFF) {
             throw std::runtime_error("source too long");
@@ -286,7 +378,7 @@ std::vector<std::uint8_t> packDocument(const Document &doc) {
 
 int main(int argc, char **argv) {
     const char *input_path = "data/quotes.json";
-    const char *output_path = "data/quotes.bin";
+    const char *output_path = "fs/quotes.bin";
     if (argc > 1) {
         input_path = argv[1];
     }
@@ -304,6 +396,11 @@ int main(int argc, char **argv) {
   try {
         const Document doc = JsonReader(json).parseDocument();
         const std::vector<std::uint8_t> blob = packDocument(doc);
+
+        const std::filesystem::path out_dir = std::filesystem::path(output_path).parent_path();
+        if (!out_dir.empty()) {
+            std::filesystem::create_directories(out_dir);
+        }
 
         std::ofstream output(output_path, std::ios::binary);
         if (!output) {
