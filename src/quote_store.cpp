@@ -101,7 +101,10 @@ bool QuoteStore::readRecord(std::size_t index, QuoteRecord &out) const {
         return false;
     }
 
-    file.seek(offsets_offset_ + (index * sizeof(std::uint32_t)));
+    if (!file.seek(offsets_offset_ + (index * sizeof(std::uint32_t)))) {
+        file.close();
+        return false;
+    }
     std::uint8_t offset_bytes[4] = {};
     if (file.read(offset_bytes, 4) != 4) {
         file.close();
@@ -113,46 +116,37 @@ bool QuoteStore::readRecord(std::size_t index, QuoteRecord &out) const {
         | (offset_bytes[2] << 16)
         | (offset_bytes[3] << 24);
 
-    file.seek(pool_offset_ + record_offset);
-
-    const int topic_id = file.read();
-    if (topic_id < 0) {
+    if (!file.seek(pool_offset_ + record_offset)) {
         file.close();
         return false;
     }
 
-    std::uint8_t lengths[3] = {};
-    if (file.read(lengths, 3) != 3) {
+    std::uint8_t record_header[4] = {};
+    if (file.read(record_header, 4) != 4) {
         file.close();
         return false;
     }
 
-    const std::uint16_t quote_len = static_cast<std::uint16_t>(lengths[0] | (lengths[1] << 8));
-    const std::uint8_t source_len = lengths[2];
+    const std::uint8_t topic_id = record_header[0];
+    const std::uint16_t quote_len =
+        static_cast<std::uint16_t>(record_header[1] | (record_header[2] << 8));
+    const std::uint8_t source_len = record_header[3];
 
-    out.quote.clear();
-    out.quote.reserve(quote_len);
-    for (std::uint16_t i = 0; i < quote_len; ++i) {
-        const int ch = file.read();
-        if (ch < 0) {
-            file.close();
-            return false;
-        }
-        out.quote.push_back(static_cast<char>(ch));
+    out.quote.resize(quote_len);
+    if (quote_len > 0
+        && file.read(reinterpret_cast<std::uint8_t *>(&out.quote[0]), quote_len) != quote_len) {
+        file.close();
+        return false;
     }
 
-    out.source.clear();
-    out.source.reserve(source_len);
-    for (std::uint8_t i = 0; i < source_len; ++i) {
-        const int ch = file.read();
-        if (ch < 0) {
-            file.close();
-            return false;
-        }
-        out.source.push_back(static_cast<char>(ch));
+    out.source.resize(source_len);
+    if (source_len > 0
+        && file.read(reinterpret_cast<std::uint8_t *>(&out.source[0]), source_len) != source_len) {
+        file.close();
+        return false;
     }
 
-    out.topic = topicName(static_cast<std::uint8_t>(topic_id));
+    out.topic = topicName(topic_id);
     file.close();
     return true;
 }
