@@ -67,11 +67,19 @@ String pool:      [topic_id:u8][quote_len:u16][source_len:u8][quote][source] ...
    pio run -e T5-ePaper-S3-no-sleep -t upload
    ```
 
-5. Upload the quote database to flash:
+5. Upload the quote database to flash (required — firmware alone leaves the factory start screen):
 
    ```bash
    pio run -e T5-ePaper-S3 -t uploadfs
    ```
+
+   To confirm the e-paper works without quotes.bin, flash the hello-world environment instead:
+
+   ```bash
+   pio run -e hello -t upload
+   ```
+
+   The panel should clear, then show **Hello**. Serial monitor (115200) prints `hello: drawn`.
 
 6. Open the serial monitor (115200 baud) to see log output:
 
