@@ -81,6 +81,12 @@ String pool:      [topic_id:u8][quote_len:u16][source_len:u8][quote][source] ...
 
    The panel should clear, then show **Hello**. Serial monitor (115200) prints `hello: drawn`.
 
+   If a previous image is still visible (ghosting), flash the repair environment and wait until the panel is white (~40 s):
+
+   ```bash
+   pio run -e repair -t upload
+   ```
+
 6. Open the serial monitor (115200 baud) to see log output:
 
    ```bash

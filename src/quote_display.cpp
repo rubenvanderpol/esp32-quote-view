@@ -163,7 +163,9 @@ void QuoteDisplay::show(const QuoteRecord &quote, std::size_t index, std::size_t
     epd_draw_hline(kMarginX, EPD_HEIGHT - 110, kContentWidth, 0, framebuffer_);
 
     epd_poweron();
+    delay(10);
     epd_clear();
+    epd_clear_area_cycles(epd_full_screen(), 4, 50);
     epd_draw_grayscale_image(epd_full_screen(), framebuffer_);
     epd_poweroff_all();
 }
