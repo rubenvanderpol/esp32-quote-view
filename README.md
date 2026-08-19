@@ -87,7 +87,7 @@ String pool:      [topic_id:u8][quote_len:u16][source_len:u8][quote][source] ...
    pio device monitor -e T5-ePaper-S3
    ```
 
-Press the side button to skip ahead. Otherwise the display advances to the **next quote in `quotes.json` order** every 6 hours (change `QUOTE_INTERVAL_HOURS` in `include/config.hpp`).
+Press the side button to skip ahead. Otherwise the display advances to the **next quote in `quotes.json` order** every 6 hours on the battery build, or every **1 minute** on `T5-ePaper-S3-no-sleep` (change `QUOTE_INTERVAL_HOURS` / `QUOTE_INTERVAL_SECONDS` in `include/config.hpp` or the PlatformIO env).
 
 ## Deep sleep (battery)
 
@@ -100,10 +100,10 @@ On wake the ESP32 reboots, reloads the quote index from NVS flash, handles the w
 
 Set `ENABLE_DEEP_SLEEP` to `0` in `include/config.hpp`, or use the **`T5-ePaper-S3-no-sleep`** PlatformIO environment (recommended for development).
 
-| Environment | Deep sleep | Use for |
-|-------------|------------|---------|
-| `T5-ePaper-S3` | On | Battery / final install |
-| `T5-ePaper-S3-no-sleep` | Off | USB debug, serial monitor, breakpoints |
+| Environment | Deep sleep | Rotation | Use for |
+|-------------|------------|----------|---------|
+| `T5-ePaper-S3` | On | 6 hours | Battery / final install |
+| `T5-ePaper-S3-no-sleep` | Off | 1 minute | USB debug, serial monitor, breakpoints |
 
 All text is rendered in **Lora** (28 pt at 150 DPI, roughly a 58 px em). The generated `include/lora.h` is committed; regular builds do not need any font tooling. To regenerate it after changing the font or size, run `python3 scripts/fontconvert_lora.py` (requires `pip install freetype-py`).
 

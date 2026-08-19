@@ -8,8 +8,7 @@
 class QuoteDisplay {
 public:
     bool begin();
-    void show(const QuoteRecord &quote, std::size_t index, std::size_t total,
-              std::uint32_t seconds_until_next = 0);
+    void show(const QuoteRecord &quote, std::size_t index, std::size_t total);
     void powerOff();
 
 private:

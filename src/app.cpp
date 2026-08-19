@@ -45,7 +45,7 @@ void QuoteApp::showQuoteAt(std::size_t index) {
 
     Serial.printf("[%u] %s — %s\n", static_cast<unsigned>(index), record.quote.c_str(),
                   record.source.c_str());
-    g_display.show(record, index, g_store.count(), g_scheduler.secondsUntilNext());
+    g_display.show(record, index, g_store.count());
 }
 
 void QuoteApp::showCurrentQuote() {
@@ -134,7 +134,8 @@ void QuoteApp::setup() {
     Serial.begin(115200);
     delay(500);
     Serial.println();
-    Serial.printf("esp32-quote-view starting (interval %d h)\n", QUOTE_INTERVAL_HOURS);
+    Serial.printf("esp32-quote-view starting (interval %u s)\n",
+                  static_cast<unsigned>(QUOTE_INTERVAL_SECONDS));
 
     if (!g_scheduler.begin()) {
         Serial.println("Scheduler init failed");
@@ -176,7 +177,7 @@ void QuoteApp::loop() {
 #if !ENABLE_DEEP_SLEEP
     g_button.loop();
 
-    if (millis() - last_check_ms_ >= 30000UL) {
+    if (millis() - last_check_ms_ >= 5000UL) {
         last_check_ms_ = millis();
         checkSchedule();
     }

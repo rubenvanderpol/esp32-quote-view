@@ -130,8 +130,7 @@ void QuoteDisplay::drawWrappedText(const char *text, std::int32_t x, std::int32_
     }
 }
 
-void QuoteDisplay::show(const QuoteRecord &quote, std::size_t index, std::size_t total,
-                        std::uint32_t seconds_until_next) {
+void QuoteDisplay::show(const QuoteRecord &quote, std::size_t index, std::size_t total) {
     std::memset(framebuffer_, 0xFF, EPD_WIDTH * EPD_HEIGHT / 2);
 
     const std::int32_t topic_width = measureTextWidth(quote.topic.c_str());
@@ -156,21 +155,9 @@ void QuoteDisplay::show(const QuoteRecord &quote, std::size_t index, std::size_t
     std::snprintf(attribution, sizeof(attribution), "\xE2\x80\x94 %s", quote.source.c_str());
     drawText(attribution, kMarginX, kAttributionY, framebuffer_);
 
-    char footer[80];
-    if (seconds_until_next > 0) {
-        const std::uint32_t hours = seconds_until_next / 3600U;
-        const std::uint32_t minutes = (seconds_until_next % 3600U) / 60U;
-        if (hours > 0) {
-            std::snprintf(footer, sizeof(footer), "%u / %u   Next in %uh %um",
-                          static_cast<unsigned>(index + 1), static_cast<unsigned>(total), hours, minutes);
-        } else {
-            std::snprintf(footer, sizeof(footer), "%u / %u   Next in %um",
-                          static_cast<unsigned>(index + 1), static_cast<unsigned>(total), minutes);
-        }
-    } else {
-        std::snprintf(footer, sizeof(footer), "%u / %u", static_cast<unsigned>(index + 1),
-                      static_cast<unsigned>(total));
-    }
+    char footer[32];
+    std::snprintf(footer, sizeof(footer), "%u / %u", static_cast<unsigned>(index + 1),
+                  static_cast<unsigned>(total));
     drawCentered(footer, EPD_HEIGHT - 70, framebuffer_);
 
     epd_draw_hline(kMarginX, EPD_HEIGHT - 110, kContentWidth, 0, framebuffer_);

@@ -67,12 +67,19 @@ std::time_t compileTimeUnix() {
 }  // namespace
 
 bool QuoteScheduler::begin() {
-    interval_seconds_ = static_cast<std::uint32_t>(QUOTE_INTERVAL_HOURS) * 3600U;
+    interval_seconds_ = static_cast<std::uint32_t>(QUOTE_INTERVAL_SECONDS);
     g_prefs.begin(kPrefsNamespace, false);
     loadState();
     rtc_ok_ = initRtc();
     if (rtc_ok_) {
         ensureRtcValid();
+        // A previous 6-hour build can leave a deadline hours away; clamp so a
+        // shorter test interval takes effect on the next cycle.
+        std::time_t now = 0;
+        if (readUnixTime(&now) && next_advance_ > now + static_cast<std::time_t>(interval_seconds_)) {
+            next_advance_ = now + static_cast<std::time_t>(interval_seconds_);
+            saveState();
+        }
     }
     return true;
 }
