@@ -14,11 +14,21 @@ namespace {
 
 constexpr std::int32_t kMarginX = 48;
 constexpr std::int32_t kContentWidth = EPD_WIDTH - (kMarginX * 2);
-constexpr std::int32_t kBodyLineHeight = 46;
 constexpr std::int32_t kBodyStartY = 205;
-constexpr std::int32_t kAttributionY = EPD_HEIGHT - 150;
-// Last baseline the quote body may occupy without colliding with the attribution.
-constexpr std::int32_t kBodyMaxY = kAttributionY - kBodyLineHeight;
+// Extra space between baselines so descenders (y, g, p) do not hit the next line.
+constexpr std::int32_t kLinePadding = 16;
+// Footer is gone; sit the attribution near the bottom with room for descenders.
+constexpr std::int32_t kAttributionY = EPD_HEIGHT - 70;
+
+std::int32_t bodyLineHeight() {
+    return static_cast<std::int32_t>(kDisplayFont->advance_y) + kLinePadding;
+}
+
+std::int32_t bodyMaxBaseline() {
+    const std::int32_t descender = kDisplayFont->descender < 0 ? -kDisplayFont->descender
+                                                              : kDisplayFont->descender;
+    return kAttributionY - kDisplayFont->ascender - descender - kLinePadding;
+}
 
 std::int32_t measureTextWidth(const char *text) {
     if (!text || text[0] == '\0') {
@@ -139,8 +149,8 @@ void QuoteDisplay::show(const QuoteRecord &quote) {
 
     drawText("\xE2\x80\x9C", kMarginX, 148, framebuffer_);
 
-    drawWrappedText(quote.quote.c_str(), kMarginX, kBodyStartY, kContentWidth, kBodyLineHeight,
-                    kBodyMaxY, framebuffer_);
+    drawWrappedText(quote.quote.c_str(), kMarginX, kBodyStartY, kContentWidth, bodyLineHeight(),
+                    bodyMaxBaseline(), framebuffer_);
 
     char attribution[160];
     std::snprintf(attribution, sizeof(attribution), "\xE2\x80\x94 %s", quote.source.c_str());
