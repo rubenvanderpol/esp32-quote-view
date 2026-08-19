@@ -45,7 +45,7 @@ void QuoteApp::showQuoteAt(std::size_t index) {
 
     Serial.printf("[%u] %s — %s\n", static_cast<unsigned>(index), record.quote.c_str(),
                   record.source.c_str());
-    g_display.show(record, index, g_store.count());
+    g_display.show(record);
 }
 
 void QuoteApp::showCurrentQuote() {

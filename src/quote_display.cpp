@@ -40,15 +40,6 @@ void drawText(const char *text, std::int32_t x, std::int32_t y, std::uint8_t *fr
     write_string(kDisplayFont, text, &cursor_x, &cursor_y, framebuffer);
 }
 
-void drawCentered(const char *text, std::int32_t y, std::uint8_t *framebuffer) {
-    const std::int32_t width = measureTextWidth(text);
-    std::int32_t x = (EPD_WIDTH - width) / 2;
-    if (x < kMarginX) {
-        x = kMarginX;
-    }
-    drawText(text, x, y, framebuffer);
-}
-
 // Greedy word wrap. Newlines force a break; words that exceed max_width on
 // their own get a line of their own (the driver clips at the panel edge).
 std::vector<std::string> wrapLines(const char *text, std::int32_t max_width) {
@@ -130,7 +121,7 @@ void QuoteDisplay::drawWrappedText(const char *text, std::int32_t x, std::int32_
     }
 }
 
-void QuoteDisplay::show(const QuoteRecord &quote, std::size_t index, std::size_t total) {
+void QuoteDisplay::show(const QuoteRecord &quote) {
     std::memset(framebuffer_, 0xFF, EPD_WIDTH * EPD_HEIGHT / 2);
 
     const std::int32_t topic_width = measureTextWidth(quote.topic.c_str());
@@ -154,13 +145,6 @@ void QuoteDisplay::show(const QuoteRecord &quote, std::size_t index, std::size_t
     char attribution[160];
     std::snprintf(attribution, sizeof(attribution), "\xE2\x80\x94 %s", quote.source.c_str());
     drawText(attribution, kMarginX, kAttributionY, framebuffer_);
-
-    char footer[32];
-    std::snprintf(footer, sizeof(footer), "%u / %u", static_cast<unsigned>(index + 1),
-                  static_cast<unsigned>(total));
-    drawCentered(footer, EPD_HEIGHT - 70, framebuffer_);
-
-    epd_draw_hline(kMarginX, EPD_HEIGHT - 110, kContentWidth, 0, framebuffer_);
 
     epd_poweron();
     delay(10);
