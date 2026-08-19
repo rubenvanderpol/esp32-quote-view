@@ -103,7 +103,12 @@ def main() -> int:
     lines.append("")
     lines.append(f"const GFXglyph {FONT_NAME}Glyphs[] = {{")
     for glyph in glyph_props:
-        label = chr(glyph.code_point) if 32 <= glyph.code_point < 127 else f"U+{glyph.code_point:04X}"
+        if 32 <= glyph.code_point < 127:
+            # A trailing '\' continues the next source line, which would drop
+            # the following glyph from the array (seen as Hello → Hfmmp).
+            label = "backslash" if glyph.code_point == 0x5C else chr(glyph.code_point)
+        else:
+            label = f"U+{glyph.code_point:04X}"
         lines.append(
             "    { "
             + ", ".join(str(value) for value in glyph[:-1])
