@@ -111,7 +111,7 @@ Set `ENABLE_DEEP_SLEEP` to `0` in `include/config.hpp`, or use the **`T5-ePaper-
 | `T5-ePaper-S3` | On | 6 hours | Battery / final install |
 | `T5-ePaper-S3-no-sleep` | Off | 1 minute | USB debug, serial monitor, breakpoints |
 
-All text is rendered in **Lora** (28 pt at 150 DPI, roughly a 58 px em). The generated `include/lora.h` is committed; regular builds do not need any font tooling. To regenerate it after changing the font or size, run `python3 scripts/fontconvert_lora.py` (requires `pip install freetype-py`).
+All text is rendered in **Lora**. Topic and attribution stay at 28 pt; the quote body picks the largest of 48 / 36 / 28 / 22 pt that still fits the panel (short quotes read larger, long ones shrink instead of overflowing). The generated `include/lora.h` is committed; regular builds do not need any font tooling. To regenerate the faces after changing the font files, run `python3 scripts/fontconvert_lora.py` (requires `pip install freetype-py`).
 
 If the board was powered off, it catches up on boot (e.g. 18 hours off → skips ahead 3 quotes).
 
