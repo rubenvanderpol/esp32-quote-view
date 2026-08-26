@@ -12,12 +12,16 @@ import freetype
 FONT_PATH = Path(__file__).resolve().parents[1] / "assets" / "fonts" / "Lora-Regular.ttf"
 OUTPUT_PATH = Path(__file__).resolve().parents[1] / "include" / "lora.h"
 # Largest first in fonts.hpp; quote layout picks the biggest that fits.
-FONT_SIZES = (48, 36, 28, 22)
+# 18/16 pt cover long verses that overflow 22 pt on the 960x540 panel.
+FONT_SIZES = (48, 36, 28, 22, 18, 16)
 UI_SIZE = 28
 
-# ASCII plus typographic punctuation used in the quote UI.
+# ASCII, Latin-1 letters/punctuation (é, ë, í, ü, …), plus quote marks.
+# U+00AD (soft hyphen) is omitted: Lora has no glyph and intervals must be dense.
 INTERVALS = [
     (32, 126),
+    (0x00A0, 0x00AC),
+    (0x00AE, 0x00FF),
     (0x2013, 0x2014),  # en dash, em dash
     (0x2018, 0x2019),  # single quotes
     (0x201C, 0x201D),  # double quotes
@@ -62,7 +66,10 @@ def convert_size(face: freetype.Face, point_size: int):
         for code_point in range(start, end + 1):
             glyph_index = face.get_char_index(code_point)
             if glyph_index == 0:
-                raise ValueError(f"code point U+{code_point:04X} missing from {FONT_PATH.name}")
+                print(
+                    f"warning: U+{code_point:04X} missing from {FONT_PATH.name}; using .notdef",
+                    file=sys.stderr,
+                )
 
             face.load_glyph(glyph_index, freetype.FT_LOAD_RENDER)
             bitmap = face.glyph.bitmap
