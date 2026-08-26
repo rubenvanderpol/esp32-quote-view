@@ -111,7 +111,7 @@ Set `ENABLE_DEEP_SLEEP` to `0` in `include/config.hpp`, or use the **`T5-ePaper-
 | `T5-ePaper-S3` | On | 6 hours | Battery / final install |
 | `T5-ePaper-S3-no-sleep` | Off | 1 minute | USB debug, serial monitor, breakpoints |
 
-All text is rendered in **Lora** with ASCII plus Latin-1 (so Dutch letters such as é, ë, í, and ü draw correctly). The quote body picks the largest of 48 / 36 / 28 / 22 / 18 / 16 pt that still fits the panel. The source sits at 16 pt on the bottom left and the topic at 18 pt on the bottom right, on the same baseline. The generated `include/lora.h` is committed; regular builds do not need any font tooling. To regenerate the faces after changing the font or glyph coverage, run `python3 scripts/fontconvert_lora.py` (requires `pip install freetype-py`). After layout or quote edits, `python3 scripts/check_quote_layout.py` checks that every entry in `data/quotes.json` still fits.
+All text is rendered in **Lora** with ASCII plus Latin-1 (so Dutch letters such as é, ë, í, and ü draw correctly). The quote body picks the largest of 48 / 36 / 28 / 22 / 18 / 16 pt that still fits, then is centered in the area above the footer. The footer is reserved for the source (16 pt, left) and topic (18 pt, right) on one baseline. The generated `include/lora.h` is committed; regular builds do not need any font tooling. To regenerate the faces after changing the font or glyph coverage, run `python3 scripts/fontconvert_lora.py` (requires `pip install freetype-py`). After layout or quote edits, `python3 scripts/check_quote_layout.py` checks that every entry in `data/quotes.json` still fits.
 
 If the board was powered off, it catches up on boot (e.g. 18 hours off → skips ahead 3 quotes).
 

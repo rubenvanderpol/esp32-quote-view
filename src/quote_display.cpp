@@ -142,22 +142,64 @@ const GFXfont *fontForQuote(const char *text) {
     return kQuoteFonts[kQuoteFontCount - 1];
 }
 
-void drawWrappedText(const GFXfont *font, const char *text, std::int32_t x, std::int32_t y,
-                     std::int32_t max_width, std::int32_t line_height, std::int32_t max_y,
-                     std::uint8_t *framebuffer) {
+std::int32_t centeredX(std::int32_t width) {
+    std::int32_t x = (EPD_WIDTH - width) / 2;
+    if (x < 0) {
+        x = 0;
+    }
+    return x;
+}
+
+std::int32_t centeredBodyStart(const GFXfont *font, std::size_t line_count) {
+    const std::int32_t min_start = bodyStartBaseline(font);
+    if (line_count == 0) {
+        return min_start;
+    }
+    const std::int32_t span =
+        static_cast<std::int32_t>(line_count - 1) * lineHeight(font);
+    const std::int32_t max_last = bodyMaxBaseline(font);
+    if (max_last < min_start + span) {
+        return min_start;
+    }
+    return min_start + (max_last - min_start - span) / 2;
+}
+
+void drawCenteredQuote(const GFXfont *font, const char *text, std::uint8_t *framebuffer) {
     if (!text || text[0] == '\0') {
         return;
     }
 
-    const std::vector<std::string> lines = wrapLines(font, text, max_width);
-    std::int32_t line_y = y;
-    for (std::size_t i = 0; i < lines.size(); ++i, line_y += line_height) {
-        const bool last_slot = line_y + line_height > max_y;
+    const std::vector<std::string> lines = wrapLines(font, text, kContentWidth);
+    if (lines.empty()) {
+        return;
+    }
+
+    const std::int32_t lh = lineHeight(font);
+    const std::int32_t max_y = bodyMaxBaseline(font);
+    const std::int32_t start_y = centeredBodyStart(font, lines.size());
+
+    std::int32_t line_y = start_y;
+    for (std::size_t i = 0; i < lines.size(); ++i, line_y += lh) {
+        const bool last_slot = line_y + lh > max_y;
+        std::string line = lines[i];
         if (last_slot && i + 1 < lines.size()) {
-            drawText(font, (lines[i] + "...").c_str(), x, line_y, framebuffer);
-            return;
+            line += "...";
         }
-        drawText(font, lines[i].c_str(), x, line_y, framebuffer);
+
+        const std::int32_t width = measureTextWidth(font, line.c_str());
+        const std::int32_t x = centeredX(width);
+
+        if (i == 0) {
+            const char *open_quote = "\xE2\x80\x9C";
+            const std::int32_t mark_width = measureTextWidth(font, open_quote);
+            std::int32_t mark_x = x - mark_width - 8;
+            if (mark_x < 8) {
+                mark_x = 8;
+            }
+            drawText(font, open_quote, mark_x, line_y, framebuffer);
+        }
+
+        drawText(font, line.c_str(), x, line_y, framebuffer);
         if (last_slot) {
             return;
         }
@@ -184,12 +226,7 @@ void QuoteDisplay::show(const QuoteRecord &quote) {
     std::memset(framebuffer_, 0xFF, EPD_WIDTH * EPD_HEIGHT / 2);
 
     const GFXfont *quote_font = fontForQuote(quote.quote.c_str());
-    const std::int32_t start_y = bodyStartBaseline(quote_font);
-    const std::int32_t mark_y = start_y - static_cast<std::int32_t>(quote_font->advance_y) / 2;
-
-    drawText(quote_font, "\xE2\x80\x9C", kMarginX, mark_y, framebuffer_);
-    drawWrappedText(quote_font, quote.quote.c_str(), kMarginX, start_y, kContentWidth,
-                    lineHeight(quote_font), bodyMaxBaseline(quote_font), framebuffer_);
+    drawCenteredQuote(quote_font, quote.quote.c_str(), framebuffer_);
 
     if (!quote.source.empty()) {
         char attribution[160];
