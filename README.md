@@ -30,7 +30,7 @@ C++17 firmware for the **LilyGO T5-4.7" E-Paper S3** (ESP32-S3, 960×540 graysca
 
 Human-editable source: `data/quotes.json`
 
-At build time, the host C++ tool `tools/pack_quotes.cpp` converts `data/quotes.json` into `fs/quotes.bin` (the `fs/` directory is the LittleFS image source, so only the compact binary is shipped to the device). Standard JSON escapes (`\n`, `\t`, `\uXXXX` including surrogate pairs) are decoded to UTF-8, and quotes longer than 400 bytes are rejected at build time because they cannot fit on screen (the display also truncates gracefully with an ellipsis):
+At build time, the host C++ tool `tools/pack_quotes.cpp` converts `data/quotes.json` into `fs/quotes.bin` (the `fs/` directory is the LittleFS image source, so only the compact binary is shipped to the device). Standard JSON escapes (`\n`, `\t`, `\uXXXX` including surrogate pairs) are decoded to UTF-8, and quotes longer than 400 bytes are rejected at build time. The body type scales down (as small as 16 pt) so long verses fill the panel instead of overflowing; anything that still cannot fit is truncated with an ellipsis:
 
 | Technique | Why |
 |-----------|-----|
@@ -111,7 +111,7 @@ Set `ENABLE_DEEP_SLEEP` to `0` in `include/config.hpp`, or use the **`T5-ePaper-
 | `T5-ePaper-S3` | On | 6 hours | Battery / final install |
 | `T5-ePaper-S3-no-sleep` | Off | 1 minute | USB debug, serial monitor, breakpoints |
 
-All text is rendered in **Lora**. Topic and attribution stay at 28 pt; the quote body picks the largest of 48 / 36 / 28 / 22 pt that still fits the panel (short quotes read larger, long ones shrink instead of overflowing). The generated `include/lora.h` is committed; regular builds do not need any font tooling. To regenerate the faces after changing the font files, run `python3 scripts/fontconvert_lora.py` (requires `pip install freetype-py`).
+All text is rendered in **Lora** with ASCII plus Latin-1 (so Dutch letters such as é, ë, í, and ü draw correctly). Topic and attribution stay at 28 pt; the quote body picks the largest of 48 / 36 / 28 / 22 / 18 / 16 pt that still fits the panel (short quotes read larger, long ones shrink instead of overflowing). The generated `include/lora.h` is committed; regular builds do not need any font tooling. To regenerate the faces after changing the font or glyph coverage, run `python3 scripts/fontconvert_lora.py` (requires `pip install freetype-py`). After layout or quote edits, `python3 scripts/check_quote_layout.py` checks that every entry in `data/quotes.json` still fits.
 
 If the board was powered off, it catches up on boot (e.g. 18 hours off → skips ahead 3 quotes).
 

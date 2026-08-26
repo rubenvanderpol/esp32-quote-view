@@ -12,16 +12,18 @@
 
 namespace {
 
-constexpr std::int32_t kMarginX = 48;
+// Keep in sync with scripts/check_quote_layout.py.
+constexpr std::int32_t kMarginX = 40;
 constexpr std::int32_t kContentWidth = EPD_WIDTH - (kMarginX * 2);
-constexpr std::int32_t kTopicTop = 36;
+constexpr std::int32_t kTopicTop = 28;
 constexpr std::int32_t kTopicHeight = 52;
 constexpr std::int32_t kTopicBottom = kTopicTop + kTopicHeight;
-constexpr std::int32_t kQuoteTopGap = 36;
-// Extra space between baselines so descenders (y, g, p) do not hit the next line.
-constexpr std::int32_t kLinePadding = 16;
-// Footer is gone; sit the attribution near the bottom with room for descenders.
-constexpr std::int32_t kAttributionY = EPD_HEIGHT - 70;
+constexpr std::int32_t kQuoteTopGap = 24;
+// Font advance_y is ascender+descender with almost no extra gap; pad so
+// descenders (y, g, p, ë) do not collide with the next line's ascenders.
+constexpr std::int32_t kLinePadding = 12;
+// Sit the attribution near the bottom with room for 28 pt descenders.
+constexpr std::int32_t kAttributionY = EPD_HEIGHT - 56;
 
 std::int32_t fontDescender(const GFXfont *font) {
     return font->descender < 0 ? -font->descender : font->descender;
