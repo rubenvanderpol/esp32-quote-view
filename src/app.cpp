@@ -106,6 +106,7 @@ bool QuoteApp::handleWakeCause() {
             return g_scheduler.syncToClock(g_store.count());
         default:
             Serial.println("Wake: cold boot");
+            g_display.requestFullScrub();
             g_scheduler.syncToClock(g_store.count());
             return true;
     }
@@ -185,6 +186,21 @@ void QuoteApp::loop() {
     if (!initialized_ || g_app == nullptr) {
         return;
     }
+
+#if ENABLE_DEEP_SLEEP
+    if (!usbHostPlugged()) {
+        delay(300);
+        if (!usbHostPlugged()) {
+            Serial.println("USB unplugged — scrubbing leftover image, then deep sleep");
+            g_display.requestFullScrub();
+            if (g_store.count() > 0) {
+                showCurrentQuote();
+            }
+            enterDeepSleep();
+            return;
+        }
+    }
+#endif
 
     g_button.loop();
 
