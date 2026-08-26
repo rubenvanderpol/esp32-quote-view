@@ -67,10 +67,24 @@ String pool:      [topic_id:u8][quote_len:u16][source_len:u8][quote][source] ...
    pio run -e T5-ePaper-S3-no-sleep -t upload
    ```
 
-5. Upload the quote database to flash:
+5. Upload the quote database to flash (required — firmware alone leaves the factory start screen):
 
    ```bash
    pio run -e T5-ePaper-S3 -t uploadfs
+   ```
+
+   To confirm the e-paper works without quotes.bin, flash the hello-world environment instead:
+
+   ```bash
+   pio run -e hello -t upload
+   ```
+
+   The panel should clear, then show **Hello**. Serial monitor (115200) prints `hello: drawn`.
+
+   If a previous image is still visible (ghosting), flash the repair environment and wait until the panel is white (~40 s):
+
+   ```bash
+   pio run -e repair -t upload
    ```
 
 6. Open the serial monitor (115200 baud) to see log output:
@@ -79,7 +93,7 @@ String pool:      [topic_id:u8][quote_len:u16][source_len:u8][quote][source] ...
    pio device monitor -e T5-ePaper-S3
    ```
 
-Press the side button to skip ahead. Otherwise the display advances to the **next quote in `quotes.json` order** every 6 hours (change `QUOTE_INTERVAL_HOURS` in `include/config.hpp`).
+Press the side button to skip ahead. Otherwise the display advances to the **next quote in `quotes.json` order** every 6 hours on the battery build, or every **1 minute** on `T5-ePaper-S3-no-sleep` (change `QUOTE_INTERVAL_HOURS` / `QUOTE_INTERVAL_SECONDS` in `include/config.hpp` or the PlatformIO env).
 
 ### Upload fails: `Failed to connect to ESP32-S3: No serial data received`
 
@@ -106,12 +120,12 @@ On wake the ESP32 reboots, reloads the quote index from NVS flash, handles the w
 
 Set `ENABLE_DEEP_SLEEP` to `0` in `include/config.hpp`, or use the **`T5-ePaper-S3-no-sleep`** PlatformIO environment (recommended for development).
 
-| Environment | Deep sleep | Use for |
-|-------------|------------|---------|
-| `T5-ePaper-S3` | On | Battery / final install |
-| `T5-ePaper-S3-no-sleep` | Off | USB debug, serial monitor, breakpoints |
+| Environment | Deep sleep | Rotation | Use for |
+|-------------|------------|----------|---------|
+| `T5-ePaper-S3` | On | 6 hours | Battery / final install |
+| `T5-ePaper-S3-no-sleep` | Off | 1 minute | USB debug, serial monitor, breakpoints |
 
-All text is rendered in **Lora** (28 pt at 150 DPI, roughly a 58 px em). The generated `include/lora.h` is committed; regular builds do not need any font tooling. To regenerate it after changing the font or size, run `python3 scripts/fontconvert_lora.py` (requires `pip install freetype-py`).
+All text is rendered in **Lora**. Topic and attribution stay at 28 pt; the quote body picks the largest of 48 / 36 / 28 / 22 pt that still fits the panel (short quotes read larger, long ones shrink instead of overflowing). The generated `include/lora.h` is committed; regular builds do not need any font tooling. To regenerate the faces after changing the font files, run `python3 scripts/fontconvert_lora.py` (requires `pip install freetype-py`).
 
 If the board was powered off, it catches up on boot (e.g. 18 hours off → skips ahead 3 quotes).
 
