@@ -15,15 +15,13 @@ namespace {
 // Keep in sync with scripts/check_quote_layout.py.
 constexpr std::int32_t kMarginX = 40;
 constexpr std::int32_t kContentWidth = EPD_WIDTH - (kMarginX * 2);
-constexpr std::int32_t kTopicTop = 28;
-constexpr std::int32_t kTopicHeight = 52;
-constexpr std::int32_t kTopicBottom = kTopicTop + kTopicHeight;
-constexpr std::int32_t kQuoteTopGap = 24;
+constexpr std::int32_t kQuoteTop = 28;
 // Font advance_y is ascender+descender with almost no extra gap; pad so
 // descenders (y, g, p, ë) do not collide with the next line's ascenders.
 constexpr std::int32_t kLinePadding = 12;
-// Sit the attribution near the bottom with room for 28 pt descenders.
-constexpr std::int32_t kAttributionY = EPD_HEIGHT - 56;
+// Footer: source on the left, topic on the right, same baseline.
+constexpr std::int32_t kFooterBaseline = EPD_HEIGHT - 36;
+constexpr std::int32_t kFooterGap = 16;
 
 std::int32_t fontDescender(const GFXfont *font) {
     return font->descender < 0 ? -font->descender : font->descender;
@@ -34,11 +32,14 @@ std::int32_t lineHeight(const GFXfont *font) {
 }
 
 std::int32_t bodyStartBaseline(const GFXfont *font) {
-    return kTopicBottom + kQuoteTopGap + font->ascender;
+    return kQuoteTop + font->ascender;
 }
 
 std::int32_t bodyMaxBaseline(const GFXfont *font) {
-    return kAttributionY - font->ascender - fontDescender(font) - kLinePadding;
+    const std::int32_t source_asc = static_cast<std::int32_t>(kSourceFont->ascender);
+    const std::int32_t topic_asc = static_cast<std::int32_t>(kTopicFont->ascender);
+    const std::int32_t footer_ascender = source_asc > topic_asc ? source_asc : topic_asc;
+    return kFooterBaseline - footer_ascender - fontDescender(font) - kFooterGap;
 }
 
 std::int32_t measureTextWidth(const GFXfont *font, const char *text) {
@@ -186,26 +187,21 @@ void QuoteDisplay::show(const QuoteRecord &quote) {
     const std::int32_t start_y = bodyStartBaseline(quote_font);
     const std::int32_t mark_y = start_y - static_cast<std::int32_t>(quote_font->advance_y) / 2;
 
-    const std::int32_t topic_width = measureTextWidth(kUiFont, quote.topic.c_str());
-    epd_fill_rect(kMarginX, kTopicTop, topic_width + 32, kTopicHeight, 0x00, framebuffer_);
-    FontProperties inverted = {
-        .fg_color = 15,
-        .bg_color = 0,
-        .fallback_glyph = 0,
-        .flags = 0,
-    };
-    std::int32_t topic_x = kMarginX + 16;
-    std::int32_t topic_y = kTopicTop + 36;
-    write_mode(kUiFont, quote.topic.c_str(), &topic_x, &topic_y, framebuffer_, WHITE_ON_BLACK,
-               &inverted);
-
     drawText(quote_font, "\xE2\x80\x9C", kMarginX, mark_y, framebuffer_);
     drawWrappedText(quote_font, quote.quote.c_str(), kMarginX, start_y, kContentWidth,
                     lineHeight(quote_font), bodyMaxBaseline(quote_font), framebuffer_);
 
-    char attribution[160];
-    std::snprintf(attribution, sizeof(attribution), "\xE2\x80\x94 %s", quote.source.c_str());
-    drawText(kUiFont, attribution, kMarginX, kAttributionY, framebuffer_);
+    if (!quote.source.empty()) {
+        char attribution[160];
+        std::snprintf(attribution, sizeof(attribution), "\xE2\x80\x94 %s", quote.source.c_str());
+        drawText(kSourceFont, attribution, kMarginX, kFooterBaseline, framebuffer_);
+    }
+
+    if (!quote.topic.empty()) {
+        const std::int32_t topic_width = measureTextWidth(kTopicFont, quote.topic.c_str());
+        const std::int32_t topic_x = EPD_WIDTH - kMarginX - topic_width;
+        drawText(kTopicFont, quote.topic.c_str(), topic_x, kFooterBaseline, framebuffer_);
+    }
 
     Serial.printf("quote face advance_y=%u\n", static_cast<unsigned>(quote_font->advance_y));
 

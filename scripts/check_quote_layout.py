@@ -25,10 +25,12 @@ EPD_WIDTH = 960
 EPD_HEIGHT = 540
 MARGIN_X = 40
 CONTENT_WIDTH = EPD_WIDTH - (MARGIN_X * 2)
-TOPIC_BOTTOM = 28 + 52
-QUOTE_TOP_GAP = 24
+QUOTE_TOP = 28
 LINE_PADDING = 12
-ATTRIBUTION_Y = EPD_HEIGHT - 56
+FOOTER_BASELINE = EPD_HEIGHT - 36
+FOOTER_GAP = 16
+SOURCE_SIZE = 16
+TOPIC_SIZE = 18
 FONT_SIZES = (48, 36, 28, 22, 18, 16)
 
 
@@ -98,7 +100,8 @@ def wrap_lines(face: freetype.Face, text: str, max_width: int) -> list[str]:
     return lines
 
 
-def quote_fits(face: freetype.Face, metrics: dict, text: str) -> bool:
+def quote_fits(face: freetype.Face, metrics: dict, source_metrics: dict, topic_metrics: dict,
+               text: str) -> bool:
     if not text:
         return True
 
@@ -113,8 +116,9 @@ def quote_fits(face: freetype.Face, metrics: dict, text: str) -> bool:
 
     descender = -metrics["descender"] if metrics["descender"] < 0 else metrics["descender"]
     line_height = metrics["advance_y"] + LINE_PADDING
-    start_y = TOPIC_BOTTOM + QUOTE_TOP_GAP + metrics["ascender"]
-    max_y = ATTRIBUTION_Y - metrics["ascender"] - descender - LINE_PADDING
+    start_y = QUOTE_TOP + metrics["ascender"]
+    footer_ascender = max(source_metrics["ascender"], topic_metrics["ascender"])
+    max_y = FOOTER_BASELINE - footer_ascender - descender - FOOTER_GAP
     if start_y > max_y:
         return False
     last_y = start_y + (len(lines) - 1) * line_height
@@ -122,8 +126,10 @@ def quote_fits(face: freetype.Face, metrics: dict, text: str) -> bool:
 
 
 def font_for_quote(face: freetype.Face, metrics_by_size: dict, text: str) -> int | None:
+    source_metrics = metrics_by_size[SOURCE_SIZE]
+    topic_metrics = metrics_by_size[TOPIC_SIZE]
     for size in FONT_SIZES:
-        if quote_fits(face, metrics_by_size[size], text):
+        if quote_fits(face, metrics_by_size[size], source_metrics, topic_metrics, text):
             return size
     return None
 
