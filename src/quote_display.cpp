@@ -21,6 +21,7 @@ constexpr std::int32_t kQuoteTop = 28;
 constexpr std::int32_t kLinePadding = 12;
 // Footer: source on the left, topic on the right, same baseline.
 constexpr std::int32_t kFooterBaseline = EPD_HEIGHT - 36;
+constexpr std::int32_t kFooterGap = 16;
 constexpr std::int32_t kQuoteMarkGap = 8;
 constexpr const char *kOpenQuote = "\xE2\x80\x9C";
 constexpr const char *kCloseQuote = "\xE2\x80\x9D";
