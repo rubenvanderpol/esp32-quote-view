@@ -142,13 +142,14 @@ void QuoteApp::setup() {
         return;
     }
 
-    if (!g_store.begin()) {
-        Serial.println("Quote store init failed");
+    if (!g_display.begin()) {
+        Serial.println("Display init failed");
         return;
     }
 
-    if (!g_display.begin()) {
-        Serial.println("Display init failed");
+    if (!g_store.begin()) {
+        Serial.println("Quote store init failed");
+        g_display.showStatus("No quotes on device", "pio run -t uploadfs");
         return;
     }
 

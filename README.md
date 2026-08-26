@@ -55,25 +55,21 @@ String pool:      [topic_id:u8][quote_len:u16][source_len:u8][quote][source] ...
 1. Install [VS Code](https://code.visualstudio.com/) and the [PlatformIO IDE](https://platformio.org/install/ide?install=vscode) extension.
 2. Open this folder in VS Code.
 3. Connect the board via USB-C.
-4. Build and upload firmware:
+4. Build and upload firmware **and** the quote database. Firmware alone does not contain verses — they live in LittleFS as `quotes.bin`:
 
    ```bash
    pio run -e T5-ePaper-S3 -t upload
+   pio run -e T5-ePaper-S3 -t uploadfs
    ```
 
    For **USB debugging** (no deep sleep, continuous serial, polled button):
 
    ```bash
    pio run -e T5-ePaper-S3-no-sleep -t upload
+   pio run -e T5-ePaper-S3-no-sleep -t uploadfs
    ```
 
-5. Upload the quote database to flash (required — firmware alone leaves the factory start screen):
-
-   ```bash
-   pio run -e T5-ePaper-S3 -t uploadfs
-   ```
-
-   To confirm the e-paper works without quotes.bin, flash the hello-world environment instead:
+5. To confirm the e-paper works without `quotes.bin`, flash the hello-world environment instead:
 
    ```bash
    pio run -e hello -t upload

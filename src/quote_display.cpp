@@ -21,6 +21,7 @@ constexpr std::int32_t kQuoteTop = 28;
 constexpr std::int32_t kLinePadding = 12;
 // Footer: source on the left, topic on the right, same baseline.
 constexpr std::int32_t kFooterBaseline = EPD_HEIGHT - 36;
+constexpr std::int32_t kFooterGap = 16;
 constexpr std::int32_t kQuoteMarkGap = 8;
 constexpr const char *kOpenQuote = "\xE2\x80\x9C";
 constexpr const char *kCloseQuote = "\xE2\x80\x9D";
@@ -250,6 +251,28 @@ void QuoteDisplay::show(const QuoteRecord &quote) {
     }
 
     Serial.printf("quote face advance_y=%u\n", static_cast<unsigned>(quote_font->advance_y));
+
+    epd_poweron();
+    delay(10);
+    epd_clear();
+    epd_clear_area_cycles(epd_full_screen(), 4, 50);
+    epd_draw_grayscale_image(epd_full_screen(), framebuffer_);
+    epd_poweroff_all();
+}
+
+void QuoteDisplay::showStatus(const char *title, const char *detail) {
+    std::memset(framebuffer_, 0xFF, EPD_WIDTH * EPD_HEIGHT / 2);
+
+    if (title && title[0] != '\0') {
+        const std::int32_t title_width = measureTextWidth(kUiFont, title);
+        drawText(kUiFont, title, centeredX(title_width), EPD_HEIGHT / 2 - 24, framebuffer_);
+    }
+    if (detail && detail[0] != '\0') {
+        const std::int32_t detail_width = measureTextWidth(kSourceFont, detail);
+        drawText(kSourceFont, detail, centeredX(detail_width), EPD_HEIGHT / 2 + 36, framebuffer_);
+    }
+
+    Serial.printf("status: %s\n", title ? title : "");
 
     epd_poweron();
     delay(10);

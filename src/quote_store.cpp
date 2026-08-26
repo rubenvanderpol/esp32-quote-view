@@ -9,8 +9,8 @@
 #include "quote_format.hpp"
 
 bool QuoteStore::begin() {
-    if (!LittleFS.begin(true)) {
-        Serial.println("LittleFS mount failed");
+    if (!LittleFS.begin(false)) {
+        Serial.println("LittleFS mount failed — run: pio run -t uploadfs");
         return false;
     }
 
