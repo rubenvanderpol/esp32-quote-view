@@ -1,6 +1,7 @@
 #include "app.hpp"
 
 #include <Arduino.h>
+#include <Button2.h>
 #include <Wire.h>
 #include <esp_sleep.h>
 
@@ -12,8 +13,8 @@
 #include "quote_store.hpp"
 #include "utilities.h"
 
-#if !ENABLE_DEEP_SLEEP
-#include <Button2.h>
+#if defined(ARDUINO_USB_MODE) && ARDUINO_USB_MODE
+#include "HWCDC.h"
 #endif
 
 namespace {
@@ -22,7 +23,6 @@ QuoteStore g_store;
 QuoteDisplay g_display;
 QuoteScheduler g_scheduler;
 
-#if !ENABLE_DEEP_SLEEP
 Button2 g_button(BUTTON_1);
 QuoteApp *g_app = nullptr;
 
@@ -32,7 +32,17 @@ void handleButtonPressed(Button2 &btn) {
         g_app->onButtonPressed();
     }
 }
+
+// USB Serial/JTAG SOF is present when a USB host is attached. Deep sleep
+// powers that peripheral down, which makes the next esptool upload fail with
+// "No serial data received". Stay awake on USB so the board stays flashable.
+bool usbHostPlugged() {
+#if defined(ARDUINO_USB_MODE) && ARDUINO_USB_MODE
+    return HWCDC::isPlugged();
+#else
+    return static_cast<bool>(Serial);
 #endif
+}
 
 }  // namespace
 
@@ -152,11 +162,6 @@ void QuoteApp::setup() {
         return;
     }
 
-#if !ENABLE_DEEP_SLEEP
-    g_app = this;
-    g_button.setPressedHandler(handleButtonPressed);
-#endif
-
     if (handleWakeCause()) {
         showCurrentQuote();
     } else {
@@ -165,16 +170,22 @@ void QuoteApp::setup() {
     initialized_ = true;
 
 #if ENABLE_DEEP_SLEEP
-    enterDeepSleep();
+    if (!usbHostPlugged()) {
+        enterDeepSleep();
+        return;
+    }
+    Serial.println("USB host connected — staying awake so the board stays flashable");
 #endif
+
+    g_app = this;
+    g_button.setPressedHandler(handleButtonPressed);
 }
 
 void QuoteApp::loop() {
-    if (!initialized_) {
+    if (!initialized_ || g_app == nullptr) {
         return;
     }
 
-#if !ENABLE_DEEP_SLEEP
     g_button.loop();
 
     if (millis() - last_check_ms_ >= 5000UL) {
@@ -183,5 +194,4 @@ void QuoteApp::loop() {
     }
 
     delay(2);
-#endif
 }

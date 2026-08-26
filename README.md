@@ -95,6 +95,20 @@ String pool:      [topic_id:u8][quote_len:u16][source_len:u8][quote][source] ...
 
 Press the side button to skip ahead. Otherwise the display advances to the **next quote in `quotes.json` order** every 6 hours on the battery build, or every **1 minute** on `T5-ePaper-S3-no-sleep` (change `QUOTE_INTERVAL_HOURS` / `QUOTE_INTERVAL_SECONDS` in `include/config.hpp` or the PlatformIO env).
 
+### Upload fails: `Failed to connect to ESP32-S3: No serial data received`
+
+The T5 uses the ESP32-S3 **USB Serial/JTAG** port. Deep sleep powers that peripheral down, so esptool opens a port but hears nothing. Put the chip in download mode, then upload:
+
+1. Connect USB-C (use a data cable, not charge-only).
+2. Hold **BOOT**, tap **RST**, release **BOOT**.
+3. Start the PlatformIO upload immediately.
+
+For day-to-day USB work, flash `T5-ePaper-S3-no-sleep`. Battery firmware (`T5-ePaper-S3`) now stays awake while a USB host is plugged in so later uploads do not need the BOOT sequence.
+
+### PlatformIO `FileExistsError` on `.pio/build/...`
+
+Delete the project's `.pio` folder and retry. PlatformIO can fail with `os.makedirs` when that directory already exists (a stale cache, a parallel IntelliSense rebuild, or iCloud/Documents sync). Do not keep the project in an iCloud-synced `Documents` folder if this keeps happening.
+
 ## Deep sleep (battery)
 
 By default the firmware uses **deep sleep** between updates (`ENABLE_DEEP_SLEEP` in `include/config.hpp`). After drawing a quote it powers off the e-paper panel and sleeps until:
@@ -102,7 +116,7 @@ By default the firmware uses **deep sleep** between updates (`ENABLE_DEEP_SLEEP`
 - the next scheduled quote change (RTC timer wake), or
 - you press the side button (GPIO 21 wake).
 
-On wake the ESP32 reboots, reloads the quote index from NVS flash, handles the wake reason, redraws, and sleeps again. LilyGO reports roughly **~388 µA** with timer + GPIO wake on this board.
+On wake the ESP32 reboots, reloads the quote index from NVS flash, handles the wake reason, redraws, and sleeps again. LilyGO reports roughly **~388 µA** with timer + GPIO wake on this board. If a USB host is plugged in, the sleep-enabled firmware stays awake so USB Serial/JTAG remains available for flashing.
 
 Set `ENABLE_DEEP_SLEEP` to `0` in `include/config.hpp`, or use the **`T5-ePaper-S3-no-sleep`** PlatformIO environment (recommended for development).
 
