@@ -39,6 +39,7 @@
     "maximum_ram_size": 327680,
     "maximum_size": 16777216,
     "require_upload_port": true,
+    "before_reset": "usb_reset",
     "speed": 921600
   },
   "url": "https://www.lilygo.cc/products/t5-4-7-inch-e-paper-v2-3",
