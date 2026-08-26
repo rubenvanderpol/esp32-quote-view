@@ -21,7 +21,9 @@ constexpr std::int32_t kQuoteTop = 28;
 constexpr std::int32_t kLinePadding = 12;
 // Footer: source on the left, topic on the right, same baseline.
 constexpr std::int32_t kFooterBaseline = EPD_HEIGHT - 36;
-constexpr std::int32_t kFooterGap = 16;
+constexpr std::int32_t kQuoteMarkGap = 8;
+constexpr const char *kOpenQuote = "\xE2\x80\x9C";
+constexpr const char *kCloseQuote = "\xE2\x80\x9D";
 
 std::int32_t fontDescender(const GFXfont *font) {
     return font->descender < 0 ? -font->descender : font->descender;
@@ -181,8 +183,9 @@ void drawCenteredQuote(const GFXfont *font, const char *text, std::uint8_t *fram
     std::int32_t line_y = start_y;
     for (std::size_t i = 0; i < lines.size(); ++i, line_y += lh) {
         const bool last_slot = line_y + lh > max_y;
+        const bool truncated = last_slot && i + 1 < lines.size();
         std::string line = lines[i];
-        if (last_slot && i + 1 < lines.size()) {
+        if (truncated) {
             line += "...";
         }
 
@@ -190,17 +193,23 @@ void drawCenteredQuote(const GFXfont *font, const char *text, std::uint8_t *fram
         const std::int32_t x = centeredX(width);
 
         if (i == 0) {
-            const char *open_quote = "\xE2\x80\x9C";
-            const std::int32_t mark_width = measureTextWidth(font, open_quote);
-            std::int32_t mark_x = x - mark_width - 8;
+            const std::int32_t mark_width = measureTextWidth(font, kOpenQuote);
+            std::int32_t mark_x = x - mark_width - kQuoteMarkGap;
             if (mark_x < 8) {
                 mark_x = 8;
             }
-            drawText(font, open_quote, mark_x, line_y, framebuffer);
+            drawText(font, kOpenQuote, mark_x, line_y, framebuffer);
         }
 
         drawText(font, line.c_str(), x, line_y, framebuffer);
-        if (last_slot) {
+
+        if (truncated || i + 1 == lines.size()) {
+            const std::int32_t mark_width = measureTextWidth(font, kCloseQuote);
+            std::int32_t mark_x = x + width + kQuoteMarkGap;
+            if (mark_x + mark_width > EPD_WIDTH - 8) {
+                mark_x = EPD_WIDTH - 8 - mark_width;
+            }
+            drawText(font, kCloseQuote, mark_x, line_y, framebuffer);
             return;
         }
     }
