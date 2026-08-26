@@ -1,35 +1,119 @@
 {
   "topics": [
-    "wisdom",
-    "courage",
-    "science",
-    "humor"
+    "Geloof",
+    "Hoop",
+    "Liefde",
+    "Vader",
+    "Zoon",
+    "Geest",
+    "Zorgen",
+    "Ik ben"
   ],
   "quotes": [
     {
-      "quote": "The only true wisdom is in knowing you know nothing.",
-      "topic": "wisdom",
-      "source": "Socrates"
+      "quote": "En hij geloofde in de HEERE, en Die rekende hem dat tot gerechtigheid.",
+      "topic": "Geloof",
+      "source": "Genesis 15:6"
     },
     {
-      "quote": "It is during our darkest moments that we must focus to see the light.",
-      "topic": "courage",
-      "source": "Aristotle"
+      "quote": "Want uit genade bent u zalig geworden, door het geloof, en dat niet uit u, het is de gave van God;",
+      "topic": "Geloof",
+      "source": "Efeze 2:8"
     },
     {
-      "quote": "Somewhere, something incredible is waiting to be known.",
-      "topic": "science",
-      "source": "Carl Sagan"
+      "quote": "opdat ieder die in Hem gelooft, niet verloren gaat, maar eeuwig leven heeft.",
+      "topic": "Geloof",
+      "source": "Johannes 3:15"
     },
     {
-      "quote": "I have not failed. I've just found 10,000 ways that won't work.",
-      "topic": "science",
-      "source": "Thomas Edison"
+      "quote": "Wij dan, gerechtvaardigd uit het geloof, hebben vrede bij God door onze Heere Jezus Christus.",
+      "topic": "Geloof",
+      "source": "Romeinen 5:1"
     },
     {
-      "quote": "A day without sunshine is like, you know, night.",
-      "topic": "humor",
-      "source": "Steve Martin"
+      "quote": "Het is toch immers één en dezelfde God, Die besnedenen rechtvaardigen zal uit het geloof en onbesnedenen door het geloof",
+      "topic": "Geloof",
+      "source": "Romeinen 3:30"
+    },
+    {
+      "quote": "Het geloof nu is een vaste grond van de dingen die men hoopt, en een bewijs van de zaken die men niet ziet.",
+      "topic": "Geloof",
+      "source": "Hebreeën 11:1"
+    },
+    {
+      "quote": "Want met het hart gelooft men tot gerechtigheid en met de mond belijdt men tot zaligheid.",
+      "topic": "Geloof",
+      "source": "Romeinen 10:10 "
+    },
+    {
+      "quote": "Zou iets voor de Heere te wonderlijk zijn",
+      "topic": "Hoop",
+      "source": "Genesis 18:14"
+    },
+    {
+      "quote": "Maar ík blijf voortdurend hopen en zal U nog meer loven.",
+      "topic": "Hoop",
+      "source": "Psalm 71:14"
+    },
+    {
+      "quote": "En de hoop beschaamt niet, omdat de liefde van God in onze harten uitgestort is door de Heilige Geest, Die ons gegeven is.",
+      "topic": "Hoop",
+      "source": ""
+    },
+    {
+      "quote": "De God nu van de hoop moge u vervullen met alle blijdschap en vrede in het geloven, opdat u overvloedig bent in de hoop, door de kracht van de Heilige Geest.",
+      "topic": "Hoop",
+      "source": "Romeinen 15:13 "
+    },
+    {
+      "quote": "Opdat wij door twee onveranderlijke dingen, waarin het onmogelijk is dat God zou liegen, een sterke troost zouden ontvangen, wij die bij Hem de toevlucht genomen hebben om de hoop die voor ons ligt, vast te houden.",
+      "topic": "Hoop",
+      "source": "Hebreeën 6:18"
+    },
+    {
+      "quote": "Deze hoop hebben wij als een anker voor de ziel, dat vast en onwrikbaar is en reikt tot in het binnenste heiligdom, achter het voorhangsel.",
+      "topic": "Hoop",
+      "source": "Hebreeën 6:19"
+    },
+    {
+      "quote": "Maar wij verlangen ernaar dat ieder van u dezelfde inzet toont, tot volle zekerheid van de hoop, tot het einde toe",
+      "topic": "Hoop",
+      "source": "Hebreeën 6:11"
+    },
+    {
+      "quote": "En nu blijven geloof, hoop en liefde, deze drie, maar de meeste van deze is de liefde.",
+      "topic": "Liefde",
+      "source": "1 Korinthe 13:13"
+    },
+    {
+      "quote": "Want zo lief heeft God de wereld gehad, dat Hij Zijn eniggeboren Zoon gegeven heeft, opdat ieder die in Hem gelooft, niet verloren gaat, maar eeuwig leven heeft.",
+      "topic": "Liefde",
+      "source": "Johannes 3:16"
+    },
+    {
+      "quote": "God echter bevestigt Zijn liefde voor ons daarin dat Christus voor ons gestorven is toen wij nog zondaars waren.",
+      "topic": "Liefde",
+      "source": "Romeinen 5:8"
+    },
+    {
+      "quote": "Hierdoor zullen allen inzien dat u Mijn discipelen bent: als u liefde onder elkaar hebt.",
+      "topic": "Liefde",
+      "source": "Johannes 13:35"
+    },
+    {
+      "quote": "Maar Ik zeg u: Heb uw vijanden lief; zegen hen die u vervloeken; doe goed aan hen die u haten; en bid voor hen die u beledigen en u vervolgen",
+      "topic": "Liefde",
+      "source": "Mattheüs 5:44"
+    },
+    {
+      "quote": "Een nieuw gebod geef Ik u, namelijk dat u elkaar liefhebt; zoals Ik u liefgehad heb, moet u ook elkaar liefhebben.",
+      "topic": "Liefde",
+      "source": "Johannes 13:34"
+    },
+    {
+      "quote": "De liefde is geduldig, zij is vriendelijk, de liefde is niet jaloers, de liefde pronkt niet, zij doet niet gewichtig",
+      "topic": "Liefde",
+      "source": "1 Korinthe 13:4"
     }
   ]
 }
