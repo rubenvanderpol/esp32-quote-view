@@ -158,22 +158,10 @@ void QuoteApp::setup() {
     }
 
     const bool have_quotes = g_store.begin();
-    const esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
-    const bool cold_boot =
-        cause != ESP_SLEEP_WAKEUP_EXT1 && cause != ESP_SLEEP_WAKEUP_TIMER;
-
-    // Always wipe leftover pixels on power-on, even when quotes.bin is missing.
-    // Otherwise a firmware-only upload leaves the stacked old image untouched.
-    if (cold_boot) {
-        g_display.requestFullScrub();
-    }
-
     if (!have_quotes) {
         Serial.println("Quote store init failed");
         g_display.showMessage("No quotes on device\nrun: pio ... -t uploadfs");
     } else if (handleWakeCause()) {
-        showCurrentQuote();
-    } else if (cold_boot) {
         showCurrentQuote();
     } else {
         Serial.println("Nothing due yet — keeping current display");
@@ -201,13 +189,7 @@ void QuoteApp::loop() {
     if (!usbHostPlugged()) {
         delay(300);
         if (!usbHostPlugged()) {
-            Serial.println("USB unplugged — scrubbing leftover image, then deep sleep");
-            g_display.requestFullScrub();
-            if (g_store.count() > 0) {
-                showCurrentQuote();
-            } else {
-                g_display.showMessage("No quotes on device\nrun: pio ... -t uploadfs");
-            }
+            Serial.println("USB unplugged — entering deep sleep");
             enterDeepSleep();
             return;
         }

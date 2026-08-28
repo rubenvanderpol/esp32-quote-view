@@ -84,21 +84,14 @@ String pool:      [topic_id:u8][quote_len:u16][source_len:u8][quote][source] ...
 
    The panel should clear, then show **Hello**. Serial monitor (115200) prints `hello: drawn`.
 
-   **Stacked leftover quotes** (several verses on top of each other) need a full ~40 s black/white wipe. After flashing this firmware, **leave USB plugged and wait** — cold boot runs that wipe automatically, then draws one quote. Do not unplug while it is flashing. Serial prints `display: full scrub (~40 s)`.
-
-   Firmware upload does not put verses on the device. Also run:
+   **Stacked leftover quotes** need the repair env first (`pio run -e repair -t upload`, then tap **RST** without IO0, wait until white). Quote firmware does not wipe the panel for 40 s — after a white screen, flash quotes and the filesystem, then tap **RST**:
 
    ```bash
+   pio run -e T5-ePaper-S3 -t upload
    pio run -e T5-ePaper-S3 -t uploadfs
    ```
 
-   If the panel is still stacked, flash the standalone repair env and wait until it is white:
-
-   ```bash
-   pio run -e repair -t upload
-   ```
-
-   Then flash quotes firmware and `uploadfs` again.
+   Tap **RST** after each SUCCESS. You should see one quote within a few seconds, or **No quotes on device** if `uploadfs` was skipped.
 6. Open the serial monitor (115200 baud) to see log output:
 
    ```bash
@@ -133,7 +126,7 @@ By default the firmware uses **deep sleep** between updates (`ENABLE_DEEP_SLEEP`
 - the next scheduled quote change (RTC timer wake), or
 - you press the side button (GPIO 21 wake).
 
-On wake the ESP32 reboots, reloads the quote index from NVS flash, handles the wake reason, redraws, and sleeps again. LilyGO reports roughly **~388 µA** with timer + GPIO wake on this board. If a USB host is plugged in, the sleep-enabled firmware stays awake so USB Serial/JTAG remains available for flashing. Unplugging USB (battery only) scrubs the panel, redraws the current quote, then sleeps — that is what clears stacked leftovers from a USB session.
+On wake the ESP32 reboots, reloads the quote index from NVS flash, handles the wake reason, redraws, and sleeps again. LilyGO reports roughly **~388 µA** with timer + GPIO wake on this board. If a USB host is plugged in, the sleep-enabled firmware stays awake so USB Serial/JTAG remains available for flashing. Unplugging USB (battery only) then deep-sleeps; the panel keeps the last quote.
 
 Set `ENABLE_DEEP_SLEEP` to `0` in `include/config.hpp`, or use the **`T5-ePaper-S3-no-sleep`** PlatformIO environment (recommended for development).
 

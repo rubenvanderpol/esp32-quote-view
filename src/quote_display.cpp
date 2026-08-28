@@ -216,29 +216,6 @@ void drawCenteredQuote(const GFXfont *font, const char *text, std::uint8_t *fram
     }
 }
 
-void runRepairSequence(const Rect_t &area) {
-    // Same waveform as examples/repair/main.cpp. A few short cycles cannot
-    // reverse pixels that have been sitting with stacked quotes.
-    Serial.println("display: full scrub (~40 s) — keep USB connected");
-    epd_clear();
-    for (int32_t i = 0; i < 20; i++) {
-        epd_push_pixels(area, 50, 0);
-        delay(500);
-        if ((i + 1) % 5 == 0) {
-            Serial.printf("display: black %d/20\n", i + 1);
-        }
-    }
-    epd_clear();
-    for (int32_t i = 0; i < 40; i++) {
-        epd_push_pixels(area, 50, 1);
-        delay(500);
-        if ((i + 1) % 10 == 0) {
-            Serial.printf("display: white %d/40\n", i + 1);
-        }
-    }
-    epd_clear();
-}
-
 }  // namespace
 
 bool QuoteDisplay::begin() {
@@ -255,26 +232,11 @@ bool QuoteDisplay::begin() {
     return true;
 }
 
-void QuoteDisplay::requestFullScrub() {
-    full_scrub_next_ = true;
-}
-
 void QuoteDisplay::present() {
     const Rect_t area = epd_full_screen();
-    const bool full_scrub = full_scrub_next_;
-    full_scrub_next_ = false;
-
     epd_poweron();
     delay(50);
-
-    if (full_scrub) {
-        runRepairSequence(area);
-    } else {
-        epd_clear();
-        delay(50);
-        epd_draw_image(area, framebuffer_, WHITE_ON_WHITE);
-    }
-
+    epd_clear();
     epd_draw_image(area, framebuffer_, BLACK_ON_WHITE);
     epd_poweroff_all();
 }
