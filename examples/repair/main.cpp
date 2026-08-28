@@ -4,7 +4,8 @@
  *
  *   pio run -e repair -t upload
  *
- * Wait until serial prints "repair: done" before flashing quotes again.
+ * After a successful upload, tap RST (do not hold IO0) so the sketch
+ * actually starts. Then wait until the panel is white.
  */
 
 #ifndef BOARD_HAS_PSRAM
@@ -17,11 +18,7 @@
 #include "utilities.h"
 
 void setup() {
-    Serial.begin(115200);
-    delay(500);
-    Serial.println();
-    Serial.println("repair: starting (30-40 s)");
-
+    // Drive the panel first. USB serial can wait; the wipe must not.
     epd_init();
 
     const Rect_t area = epd_full_screen();
@@ -40,6 +37,7 @@ void setup() {
     epd_clear();
     epd_poweroff_all();
 
+    Serial.begin(115200);
     Serial.println("repair: done — panel should be blank");
 }
 

@@ -23,7 +23,10 @@ C++17 firmware for the **LilyGO T5-4.7" E-Paper S3** (ESP32-S3, 960×540 graysca
 
 - [LilyGO T5-4.7-S3 E-Paper](https://github.com/Xinyuan-LilyGO/LilyGo-EPD47) (4.7" ED047TC1, JST-PH Li-Po)
 - USB-C cable for power, upload, serial monitor, and JTAG debug
-- Side button (GPIO 21) skips to the next quote immediately
+- Three small buttons on the **back** of the PCB (none is silkscreened BOOT):
+  - **RST** (sometimes **REST**) — reset
+  - **IO0** / **STR_IO0** / **SIR_io0** — download mode (hold this, tap RST)
+  - **IO21** — side/user button; skips to the next quote
 - On-board **PCF8563 RTC** drives automatic rotation every `QUOTE_INTERVAL_HOURS` (default 6 h)
 
 ## Storage design
@@ -81,12 +84,14 @@ String pool:      [topic_id:u8][quote_len:u16][source_len:u8][quote][source] ...
 
    The panel should clear, then show **Hello**. Serial monitor (115200) prints `hello: drawn`.
 
-   Switching to battery (USB unplug or a cold power-on) runs a longer black/white scrub so the previous USB quote does not sit under the new one. If a previous image is still visible after that, flash the repair environment and wait until the panel is white (~40 s):
+   **Stacked leftover quotes** need the repair env first (`pio run -e repair -t upload`, then tap **RST** without IO0, wait until white). Quote firmware does not wipe the panel for 40 s — after a white screen, flash quotes and the filesystem, then tap **RST**:
 
    ```bash
-   pio run -e repair -t upload
+   pio run -e T5-ePaper-S3 -t upload
+   pio run -e T5-ePaper-S3 -t uploadfs
    ```
 
+   Tap **RST** after each SUCCESS. You should see one quote within a few seconds, or **No quotes on device** if `uploadfs` was skipped.
 6. Open the serial monitor (115200 baud) to see log output:
 
    ```bash
@@ -97,13 +102,18 @@ Press the side button to skip ahead. Otherwise the display advances to the **nex
 
 ### Upload fails: `Failed to connect to ESP32-S3: No serial data received`
 
-The T5 uses the ESP32-S3 **USB Serial/JTAG** port. Deep sleep powers that peripheral down, so esptool opens a port but hears nothing. Put the chip in download mode, then upload:
+The T5 uses the ESP32-S3 **USB Serial/JTAG** port. Deep sleep powers that peripheral down, so esptool opens a port but hears nothing.
+
+This board has **no button labeled BOOT**. Flip it over: next to **RST** (sometimes printed **REST**) is a second switch labeled **IO0**, **STR_IO0**, or **SIR_io0**. That is the download-mode button. The edge **IO21** button is only “next quote”.
 
 1. Connect USB-C (use a data cable, not charge-only).
-2. Hold **BOOT**, tap **RST**, release **BOOT**.
+2. Hold **IO0**, tap **RST**, release **IO0**.
 3. Start the PlatformIO upload immediately.
+4. When the upload says SUCCESS, tap **RST** once **without** holding IO0. Download mode only writes flash; this reset is what starts the new sketch. Until you do that, the e-paper keeps the old image and looks like “nothing happened”.
 
-For day-to-day USB work, flash `T5-ePaper-S3-no-sleep`. Battery firmware (`T5-ePaper-S3`) now stays awake while a USB host is plugged in so later uploads do not need the BOOT sequence.
+If you cannot find IO0, plug USB, tap **RST**, and start the upload within a couple of seconds while the chip is still awake. PlatformIO already uses `usb_reset`, so that is often enough. Still tap **RST** after a successful upload.
+
+For day-to-day USB work, flash `T5-ePaper-S3-no-sleep`. Battery firmware (`T5-ePaper-S3`) stays awake while a USB host is plugged in so later uploads do not need the IO0 sequence.
 
 ### PlatformIO `FileExistsError` on `.pio/build/...`
 
@@ -116,7 +126,7 @@ By default the firmware uses **deep sleep** between updates (`ENABLE_DEEP_SLEEP`
 - the next scheduled quote change (RTC timer wake), or
 - you press the side button (GPIO 21 wake).
 
-On wake the ESP32 reboots, reloads the quote index from NVS flash, handles the wake reason, redraws, and sleeps again. LilyGO reports roughly **~388 µA** with timer + GPIO wake on this board. If a USB host is plugged in, the sleep-enabled firmware stays awake so USB Serial/JTAG remains available for flashing. Unplugging USB (battery only) scrubs the panel, redraws the current quote, then sleeps — that is what clears stacked leftovers from a USB session.
+On wake the ESP32 reboots, reloads the quote index from NVS flash, handles the wake reason, redraws, and sleeps again. LilyGO reports roughly **~388 µA** with timer + GPIO wake on this board. If a USB host is plugged in, the sleep-enabled firmware stays awake so USB Serial/JTAG remains available for flashing. Unplugging USB (battery only) then deep-sleeps; the panel keeps the last quote.
 
 Set `ENABLE_DEEP_SLEEP` to `0` in `include/config.hpp`, or use the **`T5-ePaper-S3-no-sleep`** PlatformIO environment (recommended for development).
 

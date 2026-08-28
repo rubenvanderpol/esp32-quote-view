@@ -106,7 +106,6 @@ bool QuoteApp::handleWakeCause() {
             return g_scheduler.syncToClock(g_store.count());
         default:
             Serial.println("Wake: cold boot");
-            g_display.requestFullScrub();
             g_scheduler.syncToClock(g_store.count());
             return true;
     }
@@ -153,17 +152,16 @@ void QuoteApp::setup() {
         return;
     }
 
-    if (!g_store.begin()) {
-        Serial.println("Quote store init failed");
-        return;
-    }
-
     if (!g_display.begin()) {
         Serial.println("Display init failed");
         return;
     }
 
-    if (handleWakeCause()) {
+    const bool have_quotes = g_store.begin();
+    if (!have_quotes) {
+        Serial.println("Quote store init failed");
+        g_display.showMessage("No quotes on device\nrun: pio ... -t uploadfs");
+    } else if (handleWakeCause()) {
         showCurrentQuote();
     } else {
         Serial.println("Nothing due yet — keeping current display");
@@ -191,11 +189,7 @@ void QuoteApp::loop() {
     if (!usbHostPlugged()) {
         delay(300);
         if (!usbHostPlugged()) {
-            Serial.println("USB unplugged — scrubbing leftover image, then deep sleep");
-            g_display.requestFullScrub();
-            if (g_store.count() > 0) {
-                showCurrentQuote();
-            }
+            Serial.println("USB unplugged — entering deep sleep");
             enterDeepSleep();
             return;
         }

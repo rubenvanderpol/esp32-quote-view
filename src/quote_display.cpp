@@ -232,40 +232,11 @@ bool QuoteDisplay::begin() {
     return true;
 }
 
-void QuoteDisplay::requestFullScrub() {
-    full_scrub_next_ = true;
-}
-
 void QuoteDisplay::present() {
     const Rect_t area = epd_full_screen();
-    const bool full_scrub = full_scrub_next_;
-    full_scrub_next_ = false;
-
     epd_poweron();
-    // The panel boost converter needs a moment, especially on a just-inserted battery.
     delay(50);
-
-    if (full_scrub) {
-        Serial.println("display: full scrub");
-        // Hold black, then white, so pixels that sat with an old quote reverse
-        // fully. A short epd_clear() is not enough after USB development or a
-        // refresh that was cut off when power changed.
-        for (int32_t i = 0; i < 6; ++i) {
-            epd_push_pixels(area, 50, 0);
-            delay(200);
-        }
-        epd_clear();
-        for (int32_t i = 0; i < 8; ++i) {
-            epd_push_pixels(area, 50, 1);
-            delay(200);
-        }
-    }
-
     epd_clear();
-    delay(50);
-    // Bleach pixels that should be white (cancels leftover dark glyphs), then
-    // paint the new black text. Grayscale draw alone leaves the previous frame.
-    epd_draw_image(area, framebuffer_, WHITE_ON_WHITE);
     epd_draw_image(area, framebuffer_, BLACK_ON_WHITE);
     epd_poweroff_all();
 }
@@ -289,6 +260,16 @@ void QuoteDisplay::show(const QuoteRecord &quote) {
     }
 
     Serial.printf("quote face advance_y=%u\n", static_cast<unsigned>(quote_font->advance_y));
+    present();
+}
+
+void QuoteDisplay::showMessage(const char *text) {
+    std::memset(framebuffer_, 0xFF, EPD_WIDTH * EPD_HEIGHT / 2);
+    if (text != nullptr && text[0] != '\0') {
+        std::int32_t cursor_x = 80;
+        std::int32_t cursor_y = 260;
+        write_string(kUiFont, text, &cursor_x, &cursor_y, framebuffer_);
+    }
     present();
 }
 
