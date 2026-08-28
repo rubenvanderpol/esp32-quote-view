@@ -23,7 +23,10 @@ C++17 firmware for the **LilyGO T5-4.7" E-Paper S3** (ESP32-S3, 960×540 graysca
 
 - [LilyGO T5-4.7-S3 E-Paper](https://github.com/Xinyuan-LilyGO/LilyGo-EPD47) (4.7" ED047TC1, JST-PH Li-Po)
 - USB-C cable for power, upload, serial monitor, and JTAG debug
-- Side button (GPIO 21) skips to the next quote immediately
+- Three small buttons on the **back** of the PCB (none is silkscreened BOOT):
+  - **RST** (sometimes **REST**) — reset
+  - **IO0** / **STR_IO0** / **SIR_io0** — download mode (hold this, tap RST)
+  - **IO21** — side/user button; skips to the next quote
 - On-board **PCF8563 RTC** drives automatic rotation every `QUOTE_INTERVAL_HOURS` (default 6 h)
 
 ## Storage design
@@ -97,13 +100,17 @@ Press the side button to skip ahead. Otherwise the display advances to the **nex
 
 ### Upload fails: `Failed to connect to ESP32-S3: No serial data received`
 
-The T5 uses the ESP32-S3 **USB Serial/JTAG** port. Deep sleep powers that peripheral down, so esptool opens a port but hears nothing. Put the chip in download mode, then upload:
+The T5 uses the ESP32-S3 **USB Serial/JTAG** port. Deep sleep powers that peripheral down, so esptool opens a port but hears nothing.
+
+This board has **no button labeled BOOT**. Flip it over: next to **RST** (sometimes printed **REST**) is a second switch labeled **IO0**, **STR_IO0**, or **SIR_io0**. That is the download-mode button. The edge **IO21** button is only “next quote”.
 
 1. Connect USB-C (use a data cable, not charge-only).
-2. Hold **BOOT**, tap **RST**, release **BOOT**.
+2. Hold **IO0**, tap **RST**, release **IO0**.
 3. Start the PlatformIO upload immediately.
 
-For day-to-day USB work, flash `T5-ePaper-S3-no-sleep`. Battery firmware (`T5-ePaper-S3`) now stays awake while a USB host is plugged in so later uploads do not need the BOOT sequence.
+If you cannot find IO0, plug USB, tap **RST**, and start the upload within a couple of seconds while the chip is still awake. PlatformIO already uses `usb_reset`, so that is often enough.
+
+For day-to-day USB work, flash `T5-ePaper-S3-no-sleep`. Battery firmware (`T5-ePaper-S3`) stays awake while a USB host is plugged in so later uploads do not need the IO0 sequence.
 
 ### PlatformIO `FileExistsError` on `.pio/build/...`
 
