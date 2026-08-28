@@ -16,7 +16,6 @@ public:
 
 private:
     void present();
-    void runRepairSequence(const Rect_t &area);
 
     std::uint8_t *framebuffer_ = nullptr;
     bool full_scrub_next_ = false;

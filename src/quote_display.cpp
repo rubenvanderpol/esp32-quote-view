@@ -216,27 +216,7 @@ void drawCenteredQuote(const GFXfont *font, const char *text, std::uint8_t *fram
     }
 }
 
-}  // namespace
-
-bool QuoteDisplay::begin() {
-    epd_init();
-
-    framebuffer_ = static_cast<std::uint8_t *>(
-        ps_calloc(sizeof(std::uint8_t), EPD_WIDTH * EPD_HEIGHT / 2));
-    if (!framebuffer_) {
-        Serial.println("framebuffer alloc failed");
-        return false;
-    }
-
-    std::memset(framebuffer_, 0xFF, EPD_WIDTH * EPD_HEIGHT / 2);
-    return true;
-}
-
-void QuoteDisplay::requestFullScrub() {
-    full_scrub_next_ = true;
-}
-
-void QuoteDisplay::runRepairSequence(const Rect_t &area) {
+void runRepairSequence(const Rect_t &area) {
     // Same waveform as examples/repair/main.cpp. A few short cycles cannot
     // reverse pixels that have been sitting with stacked quotes.
     Serial.println("display: full scrub (~40 s) — keep USB connected");
@@ -257,6 +237,26 @@ void QuoteDisplay::runRepairSequence(const Rect_t &area) {
         }
     }
     epd_clear();
+}
+
+}  // namespace
+
+bool QuoteDisplay::begin() {
+    epd_init();
+
+    framebuffer_ = static_cast<std::uint8_t *>(
+        ps_calloc(sizeof(std::uint8_t), EPD_WIDTH * EPD_HEIGHT / 2));
+    if (!framebuffer_) {
+        Serial.println("framebuffer alloc failed");
+        return false;
+    }
+
+    std::memset(framebuffer_, 0xFF, EPD_WIDTH * EPD_HEIGHT / 2);
+    return true;
+}
+
+void QuoteDisplay::requestFullScrub() {
+    full_scrub_next_ = true;
 }
 
 void QuoteDisplay::present() {
