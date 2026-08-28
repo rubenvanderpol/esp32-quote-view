@@ -84,12 +84,21 @@ String pool:      [topic_id:u8][quote_len:u16][source_len:u8][quote][source] ...
 
    The panel should clear, then show **Hello**. Serial monitor (115200) prints `hello: drawn`.
 
-   Switching to battery (USB unplug or a cold power-on) runs a longer black/white scrub so the previous USB quote does not sit under the new one. If a previous image is still visible after that, flash the repair environment and wait until the panel is white (~40 s):
+   **Stacked leftover quotes** (several verses on top of each other) need a full ~40 s black/white wipe. After flashing this firmware, **leave USB plugged and wait** — cold boot runs that wipe automatically, then draws one quote. Do not unplug while it is flashing. Serial prints `display: full scrub (~40 s)`.
+
+   Firmware upload does not put verses on the device. Also run:
+
+   ```bash
+   pio run -e T5-ePaper-S3 -t uploadfs
+   ```
+
+   If the panel is still stacked, flash the standalone repair env and wait until it is white:
 
    ```bash
    pio run -e repair -t upload
    ```
 
+   Then flash quotes firmware and `uploadfs` again.
 6. Open the serial monitor (115200 baud) to see log output:
 
    ```bash
