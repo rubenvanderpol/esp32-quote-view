@@ -116,8 +116,9 @@ This board has **no button labeled BOOT**. Flip it over: next to **RST** (someti
 1. Connect USB-C (use a data cable, not charge-only).
 2. Hold **IO0**, tap **RST**, release **IO0**.
 3. Start the PlatformIO upload immediately.
+4. When the upload says SUCCESS, tap **RST** once **without** holding IO0. Download mode only writes flash; this reset is what starts the new sketch. Until you do that, the e-paper keeps the old image and looks like “nothing happened”.
 
-If you cannot find IO0, plug USB, tap **RST**, and start the upload within a couple of seconds while the chip is still awake. PlatformIO already uses `usb_reset`, so that is often enough.
+If you cannot find IO0, plug USB, tap **RST**, and start the upload within a couple of seconds while the chip is still awake. PlatformIO already uses `usb_reset`, so that is often enough. Still tap **RST** after a successful upload.
 
 For day-to-day USB work, flash `T5-ePaper-S3-no-sleep`. Battery firmware (`T5-ePaper-S3`) stays awake while a USB host is plugged in so later uploads do not need the IO0 sequence.
 
