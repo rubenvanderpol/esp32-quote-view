@@ -81,7 +81,7 @@ String pool:      [topic_id:u8][quote_len:u16][source_len:u8][quote][source] ...
 
    The panel should clear, then show **Hello**. Serial monitor (115200) prints `hello: drawn`.
 
-   If a previous image is still visible (ghosting), flash the repair environment and wait until the panel is white (~40 s):
+   Switching to battery (USB unplug or a cold power-on) runs a longer black/white scrub so the previous USB quote does not sit under the new one. If a previous image is still visible after that, flash the repair environment and wait until the panel is white (~40 s):
 
    ```bash
    pio run -e repair -t upload
@@ -116,7 +116,7 @@ By default the firmware uses **deep sleep** between updates (`ENABLE_DEEP_SLEEP`
 - the next scheduled quote change (RTC timer wake), or
 - you press the side button (GPIO 21 wake).
 
-On wake the ESP32 reboots, reloads the quote index from NVS flash, handles the wake reason, redraws, and sleeps again. LilyGO reports roughly **~388 µA** with timer + GPIO wake on this board. If a USB host is plugged in, the sleep-enabled firmware stays awake so USB Serial/JTAG remains available for flashing.
+On wake the ESP32 reboots, reloads the quote index from NVS flash, handles the wake reason, redraws, and sleeps again. LilyGO reports roughly **~388 µA** with timer + GPIO wake on this board. If a USB host is plugged in, the sleep-enabled firmware stays awake so USB Serial/JTAG remains available for flashing. Unplugging USB (battery only) scrubs the panel, redraws the current quote, then sleeps — that is what clears stacked leftovers from a USB session.
 
 Set `ENABLE_DEEP_SLEEP` to `0` in `include/config.hpp`, or use the **`T5-ePaper-S3-no-sleep`** PlatformIO environment (recommended for development).
 
